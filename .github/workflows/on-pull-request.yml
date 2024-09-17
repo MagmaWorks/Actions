@@ -28,11 +28,18 @@ jobs:
     
       - name: Test
         run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage" --logger trx --results-directory coverage
-    
+
+      - name: ReportGenerator
+        uses: danielpalme/ReportGenerator-GitHub-Action@5.1.4
+        with:
+          reports: 'coverage/*/coverage.cobertura.xml' 
+          targetdir: 'coveragereport' 
+          reporttypes: 'Cobertura'
+      
       - name: Code Coverage Summary Report
         uses: irongut/CodeCoverageSummary@v1.3.0
         with:
-          filename: 'coverage/*/coverage.cobertura.xml'
+          filename: 'coveragereport/coverage.cobertura.xml'
           badge: true
           format: 'markdown'
           output: 'both'
