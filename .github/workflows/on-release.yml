@@ -2,6 +2,12 @@ name: On Release -- Push NuGet
 
 on:
   workflow_call:
+    inputs:
+      codecov:
+        description: 'Upload code coverage to codecov.io'
+        type: boolean
+        default: true
+        required: false
 
 jobs:
   tag_new_version:
@@ -43,12 +49,13 @@ jobs:
       run: dotnet build --configuration Release
     
     - name: Test
-      run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage" --logger trx --results-directory coverage
+      run: dotnet test --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage" --logger trx --results-directory coverage
       
-    - uses: codecov/codecov-action@v5
+    - name: Upload coverage reports to workflow as artifacts
+      uses: actions/upload-artifact@v4
       with:
-        fail_ci_if_error: true
-        directory: coverage
+        name: coverage-reports
+        path: coverage
     
     - name: Package
       run: dotnet pack --configuration Release --no-restore -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg /p:DebugType=portable /property:Configuration=Debug
@@ -71,3 +78,23 @@ jobs:
       uses: hugo19941994/delete-draft-releases@v1.0.0
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  codecov-upload:
+    name: Upload coverage reports to codecov.io
+    if: inputs.codecov == true
+    needs: build_test_package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+          
+      - name: Download coverage reports from workflow artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-reports
+          path: coverage
+
+      - name: Upload coverage reports to codecov.io
+        uses: codecov/codecov-action@v5
+        with:
+          fail_ci_if_error: true
+          directory: coverage
