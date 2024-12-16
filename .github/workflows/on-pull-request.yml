@@ -19,12 +19,12 @@ jobs:
   lint:
     name: Lint (auto-fix errors and style)
     runs-on: ubuntu-latest
-    if: inputs.lint == true
     steps:
       - uses: actions/checkout@v4
       
       - name: Run linters
         uses: wearerequired/lint-action@v2
+        if: inputs.lint == true
         with:
           auto_fix: true
           dotnet_format: true
