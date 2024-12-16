@@ -9,6 +9,11 @@ on:
         default: true
         required: false
         
+      dotnet:
+        description: 'Setup a specific dotnet version'
+        type: string
+        required: false
+        
 jobs:
   build_test_package:
     name: Build, test, package and create release
@@ -20,6 +25,12 @@ jobs:
       with:
         fetch-depth: 0
         filter: tree:0
+
+    - name: Setup dotnet
+      if: "${{ inputs.dotnet != '' }}"
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ inputs.dotnet }}
     
     - name: Build
       run: dotnet build --configuration Release
