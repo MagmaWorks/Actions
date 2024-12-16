@@ -2,6 +2,12 @@ name: On Pull Request -- Lint, Build, Test, Coverage
 
 on:
   workflow_call:
+    inputs:
+      upload-coverage:
+        description: 'Upload code coverage to CodeCov.io'
+        type: boolean
+        default: true
+        required: false
       
 jobs:
   lint:
@@ -17,7 +23,7 @@ jobs:
           dotnet_format: true
   
   build-test:
-    name: Build, test and report coverage
+    name: Build, and test project
     needs: lint
     runs-on: ubuntu-latest
     steps:
@@ -28,8 +34,14 @@ jobs:
     
       - name: Test
         run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage" --logger trx --results-directory coverage
-      
+
+  upload-coverage:
+    name: Upload coverage reports to Codecov.io
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
       - uses: codecov/codecov-action@v5
+        if: upload-coverage == true
         with:
           fail_ci_if_error: true
           directory: coverage
