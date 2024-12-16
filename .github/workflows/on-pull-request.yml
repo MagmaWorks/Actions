@@ -16,7 +16,7 @@ on:
         required: false
 
       dotnet:
-        description: 'Setup dotnet'
+        description: 'Setup a specific dotnet version'
         type: string
         required: false
       
