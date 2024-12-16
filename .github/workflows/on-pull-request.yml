@@ -42,7 +42,7 @@ jobs:
         run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage" --logger trx --results-directory coverage
 
       - name: Upload coverage reports to workflow as artifacts
-      - uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-reports
           path: coverage
@@ -53,13 +53,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download coverage reports from workflow artifacts
-      - uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4
         with:
           name: coverage-reports
           path: coverage
 
       - name: Upload coverage reports to codecov.io
-      - uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: true
           directory: coverage
