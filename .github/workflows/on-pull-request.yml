@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       codecov:
-        description: 'Upload code coverage to CodeCov.io'
+        description: 'Upload code coverage to codecov.io'
         type: boolean
         default: true
         required: false
