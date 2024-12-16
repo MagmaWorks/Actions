@@ -17,7 +17,7 @@ jobs:
           dotnet_format: true
   
   build-test:
-    name: Build and test project
+    name: Build, test and report coverage
     needs: lint
     runs-on: ubuntu-latest
     steps:
@@ -28,13 +28,7 @@ jobs:
     
       - name: Test
         run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage" --logger trx --results-directory coverage
-
-  upload-coverage:
-    name: Upload code coverage reports to CodeCo
-    needs: build-test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      
       - uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: true # optional (default = false)
