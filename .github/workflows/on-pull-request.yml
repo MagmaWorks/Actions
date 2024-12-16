@@ -50,6 +50,7 @@ jobs:
   codecov-upload:
     name: Upload coverage reports to codecov.io
     if: inputs.codecov == true
+    needs: build-test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
