@@ -31,5 +31,5 @@ jobs:
       
       - uses: codecov/codecov-action@v5
         with:
-          fail_ci_if_error: true # optional (default = false)
+          fail_ci_if_error: true
           directory: coverage
