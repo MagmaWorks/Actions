@@ -27,6 +27,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup dotnet
+        if: "${{ inputs.dotnet != '' }}"
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ inputs.dotnet }}
       
       - name: Run linters
         uses: wearerequired/lint-action@v2
