@@ -8,11 +8,18 @@ on:
         type: boolean
         default: true
         required: false
+
+      lint:
+        description: 'Lint (auto-fix errors and style)'
+        type: boolean
+        default: true
+        required: false
       
 jobs:
   lint:
     name: Lint (auto-fix errors and style)
     runs-on: ubuntu-latest
+    if: inputs.lint == true
     steps:
       - uses: actions/checkout@v4
       
@@ -35,22 +42,8 @@ jobs:
       - name: Test
         run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage" --logger trx --results-directory coverage
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: coverage-reports
-          path: coverage
-
-  upload-coverage:
-    name: Upload coverage reports to Codecov.io
-    needs: build-test
-    runs-on: ubuntu-latest
-    if: inputs.upload-coverage == true
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: coverage-reports
-          path: coverage
       - uses: codecov/codecov-action@v5
+        if: inputs.upload-coverage == true
         with:
           fail_ci_if_error: true
           directory: coverage
