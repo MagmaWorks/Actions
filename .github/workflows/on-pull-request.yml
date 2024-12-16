@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: codecov/codecov-action@v5
-        if: upload-coverage == true
+        if: inputs.upload-coverage == true
         with:
           fail_ci_if_error: true
           directory: coverage
