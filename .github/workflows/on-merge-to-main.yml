@@ -19,7 +19,12 @@ jobs:
       run: dotnet build --configuration Release
     
     - name: Test
-      run: dotnet test --configuration Release --no-build
+      run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage" --logger trx --results-directory coverage
+
+    - uses: codecov/codecov-action@v5
+      with:
+        fail_ci_if_error: true # optional (default = false)
+        directory: coverage
     
     - name: Package
       run: dotnet pack --configuration Release --no-restore -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg /p:DebugType=portable /property:Configuration=Debug
