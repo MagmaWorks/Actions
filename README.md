@@ -8,7 +8,7 @@ Three workflows are available: On Pull Request, On Merge to Main and On Release.
 
 #### Inputs
 Accepted inputs (all optional) are:
-- `codecov: false` (default = true) - set if the workflow shall upload test coverage reports to [codecov.io](https://github.com/MagmaWorks/Actions/blob/main/.github/workflows/on-pull-request.yml)
+- `codecov: false` (default = true) - set if the workflow shall upload test coverage reports to [codecov.io](https://app.codecov.io/gh/MagmaWorks)
 - `lint: false` (default = true) - set if the workflow shall lint (auto-fix errors and style) using `dotnet format`
 - `dotnet: '8.0.x'` (default not set) - set if the workflow shall install a specific dotnet version
 
@@ -30,7 +30,7 @@ Accepted inputs (all optional) are:
 
 #### Inputs
 Accepted inputs (all optional) are:
-- `codecov: false` (default = true) - set if the workflow shall upload test coverage reports to [codecov.io](https://github.com/MagmaWorks/Actions/blob/main/.github/workflows/on-pull-request.yml)
+- `codecov: false` (default = true) - set if the workflow shall upload test coverage reports to [codecov.io](https://app.codecov.io/gh/MagmaWorks)(https://github.com/MagmaWorks/Actions/blob/main/.github/workflows/on-pull-request.yml)
 - `dotnet: '8.0.x'` (default not set) - set if the workflow shall install a specific dotnet version
 
 #### Steps
@@ -52,7 +52,7 @@ Accepted inputs (all optional) are:
 
 #### Inputs
 Accepted inputs (all optional) are:
-- `codecov: false` (default = true) - set if the workflow shall upload test coverage reports to [codecov.io](https://github.com/MagmaWorks/Actions/blob/main/.github/workflows/on-pull-request.yml)
+- `codecov: false` (default = true) - set if the workflow shall upload test coverage reports to [codecov.io](https://app.codecov.io/gh/MagmaWorks)(https://github.com/MagmaWorks/Actions/blob/main/.github/workflows/on-pull-request.yml)
 - `dotnet: '8.0.x'` (default not set) - set if the workflow shall install a specific dotnet version
 
 #### Steps
