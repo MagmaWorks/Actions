@@ -49,7 +49,7 @@ jobs:
 
   codecov-upload:
     name: Upload coverage reports to codecov.io
-    if: inputs.upload-coverage == true
+    if: inputs.codecov == true
     runs-on: ubuntu-latest
     steps:
       - name: Download coverage reports from workflow artifacts
