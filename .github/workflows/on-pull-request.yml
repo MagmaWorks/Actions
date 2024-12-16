@@ -30,7 +30,7 @@ jobs:
           dotnet_format: true
   
   build-test:
-    name: Build, and test project
+    name: Build and test project
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
