@@ -22,8 +22,6 @@ jobs:
           sudo apt install -y gh
 
       - name: Dispatch appropriate workflow
-        env:
-          GITHUB_PAT: ${{ secrets.ACTIONS_PAT }}
         run: |
           echo "Event: ${{ inputs.event_name }}"
 
