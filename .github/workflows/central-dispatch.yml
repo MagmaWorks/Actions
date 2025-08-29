@@ -23,4 +23,34 @@ jobs:
 
       - name: Dispatch appropriate workflow
         env:
-          GITHUB
+          GITHUB_PAT: ${{ secrets.ACTIONS_PAT }}
+        run: |
+          echo "Event: ${{ inputs.event_name }}"
+
+          if [ "${{ inputs.event_name }}" = "push" ]; then
+            if [ "${{ inputs.ref }}" = "refs/heads/main" ]; then
+              echo "Triggering on-merge-to-main.yml workflow"
+              gh workflow run on-merge-to-main.yml --ref main
+            else
+              echo "Push to non-main branch, ignoring."
+            fi
+
+          elif [ "${{ inputs.event_name }}" = "pull_request" ]; then
+            echo "Triggering on-pull-request.yml workflow"
+            gh workflow run on-pull-request.yml --ref "${{ inputs.head_ref }}"
+
+          elif [ "${{ inputs.event_name }}" = "issue_comment" ]; then
+            if [[ "${{ inputs.comment_body }}" =~ ^[Cc][Ii]$ ]]; then
+              echo "PR comment 'ci' detected — triggering on-pull-request.yml"
+              gh workflow run on-pull-request.yml --ref "${{ inputs.head_ref }}"
+            else
+              echo "Comment does not match 'ci', ignoring."
+            fi
+
+          elif [ "${{ inputs.event_name }}" = "release" ]; then
+            echo "Triggering on-release.yml workflow"
+            gh workflow run on-release.yml --ref "${{ inputs.ref }}"
+
+          else
+            echo "Event not handled."
+          fi
