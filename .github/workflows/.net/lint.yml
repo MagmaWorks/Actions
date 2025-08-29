@@ -1,0 +1,32 @@
+name: Lint .NET
+
+on:
+  workflow_call:
+    inputs:
+      dotnet:
+        description: 'Dotnet version to use'
+        type: string
+        required: false
+        default: ''
+
+jobs:
+  lint:
+    name: Lint .NET code (auto-fix)
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout code
+      - uses: actions/checkout@v4
+
+      # Setup dotnet if specified
+      - name: Setup .NET
+        if: ${{ inputs.dotnet != '' }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ inputs.dotnet }}
+
+      # Run linters
+      - name: Run .NET linters
+        uses: wearerequired/lint-action@v2
+        with:
+          auto_fix: true
+          dotnet_format: true
