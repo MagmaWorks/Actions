@@ -83,3 +83,4 @@ jobs:
         with:
           fail_ci_if_error: true
           directory: coverage
+          token: ${{ secrets.CODECOV_TOKEN }}
