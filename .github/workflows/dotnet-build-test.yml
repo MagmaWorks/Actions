@@ -47,6 +47,7 @@ jobs:
         with:
           auto_fix: true
           dotnet_format: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Comment "ci" and stop run if lint pushed fixes
         if: github.event_name == 'pull_request' && inputs.lint == true && steps.lint-check.outputs.changes_pushed == 'true'
