@@ -36,7 +36,7 @@ jobs:
       attestations: write
       
   codecov-upload:
-    needs: build-test
+    needs: [build-test, release]
     if: ${{ inputs.codecov == true }}
     uses: MagmaWorks/Actions/.github/workflows/codecov-upload.yml@main
     permissions:
