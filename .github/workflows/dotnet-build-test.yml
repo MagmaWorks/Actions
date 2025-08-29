@@ -48,9 +48,6 @@ jobs:
           auto_fix: true
           dotnet_format: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          commit: true       # pushes fixes
-          continue_on_error: true
-          skip_check: true   # <-- disable check creation to avoid 403
 
       - name: Comment "ci" and stop run if lint pushed changes
         if: github.event_name == 'pull_request' && inputs.lint == true
