@@ -16,24 +16,24 @@ on:
 jobs:
   lint:
     if: ${{ github.event_name == 'pull_request' && inputs.lint == true }}
-    uses: MagmaWorks/Actions/.github/workflows/.net/lint.yml@main
+    uses: MagmaWorks/Actions/.github/workflows/dotnet-lint.yml@main
     with:
       dotnet: ${{ inputs.dotnet }}
 
   build-test:
     needs: lint
-    uses: MagmaWorks/Actions/.github/workflows/.net/build-test.yml@main
+    uses: MagmaWorks/Actions/.github/workflows/dotnet-build-test.yml@main
     with:
       dotnet: ${{ inputs.dotnet }}
 
   release:
     needs: build-test
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' }}
-    uses: MagmaWorks/Actions/.github/workflows/.net/publish.yml@main
+    uses: MagmaWorks/Actions/.github/workflows/dotnet-publish.yml@main
     with:
       dotnet: ${{ inputs.dotnet }}
       
   codecov-upload:
     needs: build-test
     if: ${{ inputs.codecov == true }}
-    uses: MagmaWorks/Actions/.github/workflows/.net/codecov-upload.yml@main
+    uses: MagmaWorks/Actions/.github/workflows/codecov-upload.yml@main
