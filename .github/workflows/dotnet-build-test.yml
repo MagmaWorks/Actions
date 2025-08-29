@@ -52,12 +52,17 @@ jobs:
           continue_on_error: true
           skip_check: true   # <-- disable check creation to avoid 403
 
-      - name: Comment "ci" and stop run if lint pushed fixes
-        if: github.event_name == 'pull_request' && inputs.lint == true && steps.lint-check.outputs.changes_pushed == 'true'
+      - name: Comment "ci" and stop run if lint pushed changes
+        if: github.event_name == 'pull_request' && inputs.lint == true
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} --body "ci"
-          echo "Lint has pushed changes, stopping pipeline."
-          exit 78
+          if [ "$(git rev-parse HEAD)" != "${{ github.event.pull_request.head.sha }}" ]; then
+            echo "Lint pushed changes, commenting 'ci'"
+            gh pr comment ${{ github.event.pull_request.number }} --body "ci"
+            echo "Stopping workflow"
+            exit 78
+          else
+            echo "No changes from lint"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
