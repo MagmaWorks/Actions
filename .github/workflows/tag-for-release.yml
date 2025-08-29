@@ -14,7 +14,7 @@ on:
 
 jobs:
   tag_version:
-    name: Strip Build from Release Tag and Push
+    name: tag version
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
