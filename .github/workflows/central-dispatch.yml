@@ -3,24 +3,35 @@ name: Central Dispatcher
 on:
   workflow_call:
     inputs:
-      event_name:
+      codecov:
+        type: boolean
+        default: true
+      lint:
+        type: boolean
+        default: true
+      dotnet:
         type: string
-      ref:
-        type: string
-      head_ref:
-        type: string
-      comment_body:
-        type: string
+        required: false
 
 jobs:
   on-merge-to-main:
     if: ${{ inputs.event_name == 'push' && inputs.ref == 'refs/heads/main' }}
     uses: MagmaWorks/Actions/.github/workflows/on-merge-to-main.yml@main
+    with:
+      codecov: ${{ inputs.codecov }}
+      dotnet: ${{ inputs.dotnet }}
 
   on-pull-request:
     if: ${{ inputs.event_name == 'pull_request' || (inputs.event_name == 'issue_comment' && inputs.comment_body == 'ci') }}
     uses: MagmaWorks/Actions/.github/workflows/on-pull-request.yml@main
+    with:
+      codecov: ${{ inputs.codecov }}
+      lint: ${{ inputs.lint }}
+      dotnet: ${{ inputs.dotnet }}
 
   on-release:
     if: ${{ inputs.event_name == 'release' }}
     uses: MagmaWorks/Actions/.github/workflows/on-release.yml@main
+    with:
+      codecov: ${{ inputs.codecov }}
+      dotnet: ${{ inputs.dotnet }}
