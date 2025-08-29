@@ -22,7 +22,8 @@ jobs:
       dotnet: ${{ inputs.dotnet }}
 
   on-pull-request:
-    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'issue_comment' && toLower(github.event.comment.body) == 'ci') }}
+    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'issue_comment' && (github.event.comment.body == 'ci' || github.event.comment.body == 'CI' || github.event.comment.body == 'Ci' || github.event.comment.body == 'cI')) }}
+
     uses: MagmaWorks/Actions/.github/workflows/on-pull-request.yml@main
     with:
       codecov: ${{ inputs.codecov }}
