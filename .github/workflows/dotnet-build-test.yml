@@ -1,17 +1,14 @@
-name: Build and Test .NET
+name: Lint, Build and Test .NET
 
 on:
   workflow_call:
     inputs:
-      codecov:
+      lint:
         type: boolean
         default: true
       dotnet:
         type: string
         required: false
-      solution-path:
-        type: string
-        default: '.'
 
 jobs:
   build-test:
@@ -42,13 +39,27 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
-      # Restore dependencies once
-      - name: Restore dependencies
-        run: dotnet restore ${{ inputs.solution-path }} --configfile NuGet.config
+      # Lint (only on PRs if lint input is true) and comment if fixes were pushed
+      - name: Run Lint and push fixes
+        if: github.event_name == 'pull_request' && inputs.lint == true
+        id: lint-check
+        uses: wearerequired/lint-action@v2
+        with:
+          auto_fix: true
+          dotnet_format: true
 
-      # Build (incremental)
+      - name: Comment "ci" and stop run if lint pushed fixes
+        if: github.event_name == 'pull_request' && inputs.lint == true && steps.lint-check.outputs.changes_pushed == 'true'
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "ci"
+          echo "Lint has pushed changes, stopping pipeline."
+          exit 78
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build and restore solution
       - name: Build solution
-        run: dotnet build ${{ inputs.solution-path }} --configuration Release --no-restore
+        run: dotnet build ${{ inputs.solution-path }} --configuration Release
 
       # Test and collect coverage
       - name: Test projects
