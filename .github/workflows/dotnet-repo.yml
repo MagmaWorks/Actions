@@ -1,4 +1,4 @@
-name: Central Dispatcher .NET 
+name: Central Workflow Dispatcher .NET 
 
 on:
   workflow_call:
@@ -19,6 +19,8 @@ jobs:
     uses: MagmaWorks/Actions/.github/workflows/dotnet-lint.yml@main
     with:
       dotnet: ${{ inputs.dotnet }}
+    permissions:
+      contents: write 
 
   build-test:
     needs: lint
@@ -32,8 +34,15 @@ jobs:
     uses: MagmaWorks/Actions/.github/workflows/dotnet-publish.yml@main
     with:
       dotnet: ${{ inputs.dotnet }}
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: write
       
   codecov-upload:
     needs: build-test
     if: ${{ inputs.codecov == true }}
     uses: MagmaWorks/Actions/.github/workflows/codecov-upload.yml@main
+    permissions:
+      checks: write
+      pull-requests: write
