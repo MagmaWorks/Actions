@@ -13,43 +13,16 @@ on:
         type: string
 
 jobs:
-  handle-event:
-    runs-on: ubuntu-latest
-    steps:
-      # Minimal checkout for gh CLI
-      - name: Checkout repo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+  on-merge-to-main:
+    if: ${{ inputs.event_name == 'push' && inputs.ref == 'refs/heads/main' }}
+    uses: .github/workflows/on-merge-to-main.yml@main
 
-      # GitHub CLI via action (fast, pre-installed)
-      - name: Setup GitHub CLI
-        uses: cli/gh-actions@v3
-        with:
-          version: latest
+  on-pull-request:
+    if: ${{ inputs.event_name == 'pull_request' || (inputs.event_name == 'issue_comment' && inputs.comment_body == 'ci') }}
+    uses: .github/workflows/on-pull-request.yml@main
+    with:
+      pr_ref: ${{ inputs.head_ref }}
 
-      - name: Dispatch workflow
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          echo "Event: ${{ inputs.event_name }}"
-
-          if [ "${{ inputs.event_name }}" = "push" ] && [ "${{ inputs.ref }}" = "refs/heads/main" ]; then
-            echo "Triggering on-merge-to-main.yml workflow"
-            gh workflow run on-merge-to-main.yml --ref main
-
-          elif [ "${{ inputs.event_name }}" = "pull_request" ]; then
-            echo "Triggering on-pull-request.yml workflow"
-            gh workflow run on-pull-request.yml --ref "${{ inputs.head_ref }}"
-
-          elif [ "${{ inputs.event_name }}" = "release" ]; then
-            echo "Triggering on-release.yml workflow"
-            gh workflow run on-release.yml --ref "${{ inputs.ref }}"
-
-          elif [ "${{ inputs.event_name }}" = "issue_comment" ] && [[ "${{ inputs.comment_body }}" =~ ^[Cc][Ii]$ ]]; then
-            echo "PR comment 'ci' detected — triggering on-pull-request.yml"
-            gh workflow run on-pull-request.yml --ref "${{ inputs.head_ref }}"
-
-          else
-            echo "Event not handled."
-          fi
+  on-release:
+    if: ${{ inputs.event_name == 'release' }}
+    uses: .github/workflows/on-release.yml@main
