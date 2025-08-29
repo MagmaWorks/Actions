@@ -15,14 +15,14 @@ on:
 jobs:
   on-merge-to-main:
     if: ${{ inputs.event_name == 'push' && inputs.ref == 'refs/heads/main' }}
-    uses: .github/workflows/on-merge-to-main.yml@main
+    uses: MagmaWorks/Actions/.github/workflows/on-merge-to-main.yml@main
 
   on-pull-request:
     if: ${{ inputs.event_name == 'pull_request' || (inputs.event_name == 'issue_comment' && inputs.comment_body == 'ci') }}
-    uses: .github/workflows/on-pull-request.yml@main
+    uses: MagmaWorks/Actions/.github/workflows/on-pull-request.yml@main
     with:
       pr_ref: ${{ inputs.head_ref }}
 
   on-release:
     if: ${{ inputs.event_name == 'release' }}
-    uses: .github/workflows/on-release.yml@main
+    uses: MagmaWorks/Actions/.github/workflows/on-release.yml@main
