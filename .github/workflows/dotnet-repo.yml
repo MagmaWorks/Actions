@@ -18,7 +18,6 @@ on:
 
 jobs:
   build-test:
-    if: ${{ inputs.lint == true || inputs.manual_ci_trigger == true }}
     uses: MagmaWorks/Actions/.github/workflows/dotnet-build-test.yml@main
     with:
       lint: ${{ inputs.lint }}
