@@ -14,15 +14,7 @@ on:
         required: false
 
 jobs:
-  lint:
-    if: ${{ github.event_name == 'pull_request' && inputs.lint == true }}
-    uses: MagmaWorks/Actions/.github/workflows/dotnet-lint.yml@main
-    with:
-      dotnet: ${{ inputs.dotnet }}
-
-
   build-test:
-    needs: lint
     uses: MagmaWorks/Actions/.github/workflows/dotnet-build-test.yml@main
     with:
       lint: ${{ inputs.lint }}
