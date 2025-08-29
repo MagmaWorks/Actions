@@ -21,9 +21,17 @@ jobs:
       dotnet: ${{ inputs.dotnet }}
     permissions:
       contents: write 
-
-  release:
+  
+  codecov-upload:
     needs: build-test
+    if: ${{ inputs.codecov == true }}
+    uses: MagmaWorks/Actions/.github/workflows/codecov-upload.yml@main
+    permissions:
+      checks: write
+      pull-requests: write
+      
+  release:
+    needs: codecov-upload
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' }}
     uses: MagmaWorks/Actions/.github/workflows/dotnet-publish.yml@main
     with:
@@ -33,12 +41,4 @@ jobs:
       contents: write
       pull-requests: write
       checks: write
-      attestations: write
-      
-  codecov-upload:
-    needs: [build-test, release]
-    if: ${{ inputs.codecov == true }}
-    uses: MagmaWorks/Actions/.github/workflows/codecov-upload.yml@main
-    permissions:
-      checks: write
-      pull-requests: write
+      attestations: write     
