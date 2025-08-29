@@ -22,6 +22,8 @@ jobs:
           sudo apt install -y gh
 
       - name: Dispatch appropriate workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           echo "Event: ${{ inputs.event_name }}"
 
