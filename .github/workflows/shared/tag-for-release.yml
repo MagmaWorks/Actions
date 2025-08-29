@@ -1,0 +1,57 @@
+name: Tag From Release
+
+on:
+  workflow_call:
+    inputs:
+      push_tags:
+        description: "Whether to push the generated tag to the remote"
+        type: boolean
+        default: true
+      tag_input:
+        description: "The release tag to use (if empty, defaults to github.event.release.tag_name)"
+        type: string
+        required: false
+
+jobs:
+  tag_version:
+    name: Strip Build from Release Tag and Push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine Tag
+        id: tag
+        run: |
+          if [ -n "${{ inputs.tag_input }}" ]; then
+            TAG="${{ inputs.tag_input }}"
+          else
+            TAG="${GITHUB_EVENT_RELEASE_TAG_NAME:-}"
+          fi
+
+          if [ -z "$TAG" ]; then
+            echo "No tag found. Please provide 'tag_input' or ensure this is a release event."
+            exit 1
+          fi
+
+          echo "Original tag: $TAG"
+
+          # Split into major.minor.patch.build
+          IFS='.' read -r -a fullVersion <<< "$TAG"
+          major=${fullVersion[0]}
+          minor=${fullVersion[1]}
+          patch=${fullVersion[2]}
+          build=${fullVersion[3]:-0}
+
+          CLEAN_TAG="$major.$minor.$patch"
+          echo "Clean tag: $CLEAN_TAG"
+
+          echo "CLEAN_TAG=$CLEAN_TAG" >> $GITHUB_OUTPUT
+
+      - name: Push Tag to Remote
+        if: ${{ inputs.push_tags == true }}
+        run: |
+          git tag ${{ steps.tag.outputs.CLEAN_TAG }}
+          git push origin ${{ steps.tag.outputs.CLEAN_TAG }}
