@@ -67,26 +67,3 @@ jobs:
         with:
           name: coverage
           path: coverage
-
-  codecov-upload:
-    if: ${{ inputs.codecov == true }}
-    needs: build-test
-    runs-on: ubuntu-latest
-    steps:
-      # Checkout (needed to run codecov in context)
-      - uses: actions/checkout@v4
-
-      # Download coverage artifact
-      - name: Download coverage reports
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage
-          path: coverage
-
-      # Upload to Codecov
-      - name: Upload to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          directory: coverage
-          fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
