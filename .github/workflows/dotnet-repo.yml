@@ -35,9 +35,11 @@ jobs:
     with:
       dotnet: ${{ inputs.dotnet }}
     permissions:
+      actions: write
       contents: write
       pull-requests: write
       checks: write
+      attestations: write
       
   codecov-upload:
     needs: build-test
