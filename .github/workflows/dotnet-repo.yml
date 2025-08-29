@@ -12,9 +12,6 @@ on:
       codecov:
         type: boolean
         default: true
-      manual_ci_trigger:
-        type: boolean
-        default: false
 
 jobs:
   build-test:
