@@ -1,0 +1,92 @@
+name: Build and Test .NET
+
+on:
+  workflow_call:
+    inputs:
+      codecov:
+        type: boolean
+        default: true
+      dotnet:
+        type: string
+        required: false
+      solution-path:
+        type: string
+        default: '.'
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    outputs:
+      coverage-artifact: coverage
+
+    steps:
+      # Checkout the code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Setup .NET
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        if: ${{ inputs.dotnet != '' }}
+        with:
+          dotnet-version: ${{ inputs.dotnet }}
+
+      # Cache NuGet packages
+      - name: Cache NuGet packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      # Restore dependencies once
+      - name: Restore dependencies
+        run: dotnet restore ${{ inputs.solution-path }} --configfile NuGet.config
+
+      # Build (incremental)
+      - name: Build solution
+        run: dotnet build ${{ inputs.solution-path }} --configuration Release --no-restore
+
+      # Test and collect coverage
+      - name: Test projects
+        run: |
+          dotnet test ${{ inputs.solution-path }} \
+            --configuration Release \
+            --no-build \
+            --no-restore \
+            --collect:"XPlat Code Coverage" \
+            --logger trx \
+            --results-directory coverage
+
+      # Upload coverage for downstream jobs
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage
+
+  codecov-upload:
+    if: ${{ inputs.codecov == true }}
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout (needed to run codecov in context)
+      - uses: actions/checkout@v4
+
+      # Download coverage artifact
+      - name: Download coverage reports
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage
+          path: coverage
+
+      # Upload to Codecov
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          directory: coverage
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
