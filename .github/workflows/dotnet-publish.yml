@@ -9,7 +9,7 @@ on:
 
 jobs:
   tag_new_version:
-    uses: MagmaWorks/Actions/.github/workflows/shared/tag-for-release.yml@main
+    uses: MagmaWorks/Actions/.github/workflows/tag-for-release.yml@main
     
   publish:
     runs-on: ubuntu-latest
