@@ -19,14 +19,16 @@ jobs:
     uses: MagmaWorks/Actions/.github/workflows/dotnet-lint.yml@main
     with:
       dotnet: ${{ inputs.dotnet }}
-    permissions:
-      contents: write 
+
 
   build-test:
     needs: lint
     uses: MagmaWorks/Actions/.github/workflows/dotnet-build-test.yml@main
     with:
+      lint: ${{ inputs.lint }}
       dotnet: ${{ inputs.dotnet }}
+    permissions:
+      contents: write 
 
   release:
     needs: build-test
