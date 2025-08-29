@@ -27,9 +27,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.ACTIONS_PAT }}
-          fetch-depth: 0
 
       - name: Setup dotnet
         if: "${{ inputs.dotnet != '' }}"
@@ -42,24 +39,9 @@ jobs:
         with:
           auto_fix: true
           dotnet_format: true
-
-      - name: Push fixes back
-        id: push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          if [ -n "$(git status --porcelain)" ]; then
-            git commit -am "chore: auto-fix lint"
-            git push
-            echo "changes_pushed=true" >> $GITHUB_OUTPUT
-          else
-            echo "changes_pushed=false" >> $GITHUB_OUTPUT
-          fi
   
   build-test:
     name: Build and test project
-    needs: lint
-    if: needs.lint.outputs.changes_pushed == 'false'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -85,7 +67,7 @@ jobs:
   codecov-upload:
     name: Upload coverage reports to codecov.io
     needs: build-test
-    if: needs.lint.outputs.changes_pushed == 'false' && inputs.codecov == true
+    if: inputs.codecov == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
