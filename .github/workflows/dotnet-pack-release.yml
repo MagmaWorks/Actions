@@ -48,6 +48,7 @@ jobs:
           } else {
               $versionTag = "$majorVersion.$minorVersion.$patchVersion.$buildVersion"
           }
+          $versionTag = "$majorVersion.$minorVersion.$patchVersion.$buildVersion"
           echo "VERSION_TAG=$versionTag" >> $env:GITHUB_OUTPUT
           echo "Version tag: $versionTag"
 
