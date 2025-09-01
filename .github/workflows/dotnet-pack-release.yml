@@ -29,6 +29,9 @@ jobs:
         with:
           dotnet-version: ${{ inputs.dotnet }}
 
+      - name: Build
+        run: dotnet build --configuration Release
+      
       - name: Package
         run: dotnet pack --configuration Release -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg /p:DebugType=portable /property:Configuration=Debug
 
