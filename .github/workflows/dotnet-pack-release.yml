@@ -1,0 +1,97 @@
+name: Package and Release .NET
+
+on:
+  workflow_call:
+    inputs:
+      dotnet:
+        description: "Setup a specific dotnet version"
+        type: string
+        required: false
+      release:
+        description: "Set to true if this is a release event"
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  package:
+    name: Package
+    runs-on: ubuntu-latest
+    outputs:
+      version-tag: ${{ steps.get_version.outputs.VERSION_TAG }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup dotnet
+        if: ${{ inputs.dotnet != '' }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ inputs.dotnet }}
+
+      - name: Package
+        run: dotnet pack --configuration Release -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg /p:DebugType=portable /property:Configuration=Debug
+
+      - name: Get version from Package name
+        id: get_version
+        shell: pwsh
+        env:
+          RELEASE: ${{ inputs.release }}
+        run: |
+          $fullVersion = [array]$($(Get-ChildItem -Recurse -Filter *.nupkg | Select-Object -First 1).Name -split '(?=\d)',2)[1].replace('.nupkg','').replace('-preview','').split('.')
+          $majorVersion = [string]$fullVersion[0]
+          $minorVersion = [string]$fullVersion[1]
+          $patchVersion = [string]$fullVersion[2]
+          $buildVersion = [string]$fullVersion[3]
+          if ([bool]$env:RELEASE) {
+              $versionTag = "$majorVersion.$minorVersion.$patchVersion"
+          } else {
+              $versionTag = "$majorVersion.$minorVersion.$patchVersion.$buildVersion"
+          }
+          echo "VERSION_TAG=$versionTag" >> $env:GITHUB_OUTPUT
+          echo "Version tag: $versionTag"
+
+      - name: Create and push git tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.get_version.outputs.VERSION_TAG }}
+          git push origin ${{ steps.get_version.outputs.VERSION_TAG }}
+
+      - name: Create draft release (only if not release)
+        if: ${{ inputs.release == false }}
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "./**/*.nupkg"
+          tag: "${{ steps.get_version.outputs.VERSION_TAG }}"
+          draft: true
+          allowUpdates: true
+          updateOnlyUnreleased: true
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: package
+    if: ${{ inputs.release }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update draft release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "./**/*.nupkg"
+          tag: "${{ needs.package.outputs.version-tag }}"
+          draft: false
+          makeLatest: true
+          allowUpdates: true
+          removeArtifacts: true
+          updateOnlyUnreleased: false
+      
+      - name: Push to NuGet
+        run: dotnet nuget push "**/*.nupkg" --skip-duplicate --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+
+      - name: Delete previous draft releases
+        uses: hugo19941994/delete-draft-releases@v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
