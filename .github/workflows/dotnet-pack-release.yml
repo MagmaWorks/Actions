@@ -22,15 +22,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: tree:0
 
       - name: Setup dotnet
         if: ${{ inputs.dotnet != '' }}
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ inputs.dotnet }}
-
-      - name: Build
-        run: dotnet build --configuration Release
       
       - name: Package
         run: dotnet pack --configuration Release -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg /p:DebugType=portable /property:Configuration=Debug
