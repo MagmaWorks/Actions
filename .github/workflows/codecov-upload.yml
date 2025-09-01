@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 jobs:
-  code-cov:
+  Codecov:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
