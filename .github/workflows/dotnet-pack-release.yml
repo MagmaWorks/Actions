@@ -41,27 +41,31 @@ jobs:
         env:
           RELEASE: ${{ inputs.release }}
         run: |
-          $fullVersion = [array]$($(Get-ChildItem -recurse -Filter *.nupkg | Select-Object -First 1).Name -split '(?=\d)',2)[1].replace('.nupkg','').replace('-preview','').split('.')
-          $majorVersion = [string]$fullVersion[0]
-          $minorVersion = [string]$fullVersion[1]
-          $patchVersion = [string]$fullVersion[2]
-          $buildVersion = [string]$fullVersion[3]
+          $pkgName = (Get-ChildItem -Recurse -Filter *.nupkg | Select-Object -First 1).Name
 
-          if ([bool]$env:RELEASE) {
-              $versionTag = $majorVersion + "." + $minorVersion + "." + $patchVersion
+          # Regex: Major.Minor.Patch[-preview.Build]
+          if ($pkgName -match '\d+\.\d+\.\d+(?:-preview\.(\d+))?') {
+              $fullVersion = $matches[0] -replace '-preview','' -split '\.'
+              $majorVersion = $fullVersion[0]
+              $minorVersion = $fullVersion[1]
+              $patchVersion = $fullVersion[2]
+
+              # Build number is the preview number if exists, else 0
+              $buildVersion = if ($matches[1]) { $matches[1] } else { 0 }
           } else {
-              $versionTag = $majorVersion + "." + $minorVersion + "." + $patchVersion + "." + $buildVersion
+              Write-Error "Could not parse version from package name: $pkgName"
+              exit 1
           }
+
+          if ([bool]${{ inputs.release }}) {
+              $versionTag = "$majorVersion.$minorVersion.$patchVersion"
+          } else {
+              $versionTag = "$majorVersion.$minorVersion.$patchVersion.$buildVersion"
+          }
+
           echo "VERSION_TAG=$versionTag" >> $env:GITHUB_OUTPUT
           echo "Version tag: $versionTag"
-
-      - name: Create and push git tag
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag ${{ steps.get_version.outputs.VERSION_TAG }}
-          git push origin ${{ steps.get_version.outputs.VERSION_TAG }}
-
+          
       - name: Create draft release (only if not release)
         if: ${{ inputs.release == false }}
         uses: ncipollo/release-action@v1
