@@ -34,7 +34,7 @@ jobs:
   release:
     needs: codecov-upload
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' }}
-    uses: MagmaWorks/Actions/.github/workflows/dotnet-publish.yml@main
+    uses: MagmaWorks/Actions/.github/workflows/dotnet-pack-release.yml@main
     with:
       dotnet: ${{ inputs.dotnet }}
     permissions:
