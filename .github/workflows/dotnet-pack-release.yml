@@ -41,20 +41,19 @@ jobs:
         env:
           RELEASE: ${{ inputs.release }}
         run: |
-          $pkgName = $(Get-ChildItem -Recurse -Filter *.nupkg | Select-Object -First 1).Name
-          $versionString = ($pkgName -split '(?=\d)',2)[1].Replace('.nupkg','')  # keeps preview.1
-          $fullVersion = $versionString.Split('.')
-          $majorVersion = $fullVersion[0]
-          $minorVersion = $fullVersion[1]
-          $patchVersion = $fullVersion[2]
-          $buildVersion = if ($fullVersion.Count -ge 4) { $fullVersion[3] } else { "0" }
+          $pkgName = (Get-ChildItem -Recurse -Filter *.nupkg | Select-Object -First 1).Name
+          if ($pkgName -match '(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?(?:-preview(?:\.(\d+))?)?') {
+          $majorVersion = $matches[1]
+          $minorVersion = $matches[2]
+          $patchVersion = $matches[3]
+          $buildVersion = if ($matches[4]) { $matches[4] } elseif ($matches[5]) { $matches[5] } else { 0 }
+          }
 
           if ([bool]$env:RELEASE) {
               $versionTag = "$majorVersion.$minorVersion.$patchVersion"
           } else {
               $versionTag = "$majorVersion.$minorVersion.$patchVersion.$buildVersion"
           }
-
           echo "VERSION_TAG=$versionTag" >> $env:GITHUB_OUTPUT
           echo "Version tag: $versionTag"
 
