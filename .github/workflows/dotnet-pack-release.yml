@@ -41,13 +41,11 @@ jobs:
         env:
           RELEASE: ${{ inputs.release }}
         run: |
-          $pkgName = (Get-ChildItem -Recurse -Filter *.nupkg | Select-Object -First 1).Name
-          $versionPart = $pkgName -replace '.*?(\d+\.\d+\.\d+(\.\d+)?).*', '$1'
-          $fullVersion = $versionPart.Split('.')
-          $majorVersion = $fullVersion[0]
-          $minorVersion = $fullVersion[1]
-          $patchVersion = $fullVersion[2]
-          $buildVersion = if ($fullVersion.Count -ge 4) { $fullVersion[3] } else { '0' }
+          $fullVersion = [array]$($(Get-ChildItem -recurse -Filter *.nupkg | Select-Object -First 1).Name -split '(?=\d)',2)[1].replace('.nupkg','').replace('-preview','').split('.')
+          $majorVersion = [string]$fullVersion[0]
+          $minorVersion = [string]$fullVersion[1]
+          $patchVersion = [string]$fullVersion[2]
+          $buildVersion = [string]$fullVersion[3]
 
           if ([bool]$env:RELEASE) {
               $versionTag = "$majorVersion.$minorVersion.$patchVersion"
