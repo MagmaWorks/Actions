@@ -57,7 +57,7 @@ jobs:
               exit 1
           }
 
-          if ([bool]${{ inputs.release }}) {
+          if ([bool]$env:RELEASE) {
               $versionTag = "$majorVersion.$minorVersion.$patchVersion"
           } else {
               $versionTag = "$majorVersion.$minorVersion.$patchVersion.$buildVersion"
