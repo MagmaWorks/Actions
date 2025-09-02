@@ -33,28 +33,30 @@ jobs:
             -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg \
             /p:DebugType=portable /property:Configuration=Debug
 
-      - name: Rename packages and get version tag
+      - name: Rename all packages and get version tag
         id: get_version
         shell: pwsh
         run: |
-          $pkg = Get-ChildItem -Recurse -Include *.nupkg,*.snupkg | Select-Object -First 1
-          if (-not $pkg) { throw "No package found" }
+          $allPkgs = Get-ChildItem -Recurse -Include *.nupkg,*.snupkg
+          if (-not $allPkgs) { throw "No packages found" }
 
-          # Rename to remove -preview
-          $newName = $pkg.Name -replace '-preview',''
-          if ($pkg.Name -ne $newName) {
-            Rename-Item $pkg.FullName $newName
+          foreach ($pkg in $allPkgs) {
+              $newName = $pkg.Name -replace '-preview',''
+              if ($pkg.Name -ne $newName) {
+                  Rename-Item $pkg.FullName $newName
+              }
           }
 
-          # Parse version from renamed name
-          if ($newName -match '\d+\.\d+\.\d+(\.(\d+))?') {
+          # Take first renamed nupkg to extract version (they should all match)
+          $firstPkg = $allPkgs | Where-Object { $_.Extension -eq ".nupkg" } | Select-Object -First 1
+          if ($firstPkg -match '\d+\.\d+\.\d+(\.(\d+))?') {
               $parts = $matches[0] -split '\.'
               $major = $parts[0]
               $minor = $parts[1]
               $patch = $parts[2]
               $build = if ($parts.Length -ge 4) { $parts[3] } else { 0 }
           } else {
-              throw "Could not parse version from package name: $newName"
+              throw "Could not parse version from package name: $($firstPkg.Name)"
           }
 
           $versionTag = "$major.$minor.$patch.$build"
