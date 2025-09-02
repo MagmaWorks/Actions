@@ -18,10 +18,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install NuGet CLI
+      - name: Install Mono for running NuGet.exe
         run: |
           sudo apt-get update
           sudo apt-get install -y mono-complete
+          curl -L -o ./nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe
 
       - name: Strip build number, rename packages, update nuspec, and tag git
         id: rename
@@ -34,8 +35,6 @@ jobs:
               Write-Error "No packages found in ./artifacts"
               exit 1
           }
-
-          curl -L -o ./nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe
           
           if (-not (Test-Path "./nuget.exe")) {
               Write-Host "Downloading NuGet CLI..."
