@@ -18,7 +18,12 @@ on:
         
 jobs:
   build-test:
-    if: github.event_name != 'release'
+    if: |
+      github.event_name != 'release' &&
+      (
+        github.event_name != 'issue_comment' ||
+        (github.event_name == 'issue_comment' && (github.event.comment.body == 'CI' || github.event.comment.body == 'ci'))
+      )
     uses: MagmaWorks/Actions/.github/workflows/dotnet-build-test.yml@main
     with:
       lint: ${{ inputs.lint }}
@@ -29,7 +34,13 @@ jobs:
   
   codecov-upload:
     needs: build-test
-    if: ${{ inputs.codecov == true }} && github.event_name != 'release'
+    if: |
+      inputs.codecov == true &&
+      github.event_name != 'release' &&
+      (
+        github.event_name != 'issue_comment' ||
+        (github.event_name == 'issue_comment' && (github.event.comment.body == 'CI' || github.event.comment.body == 'ci'))
+      )
     uses: MagmaWorks/Actions/.github/workflows/codecov-upload.yml@main
     permissions:
       checks: write
