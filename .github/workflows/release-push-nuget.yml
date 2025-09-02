@@ -18,7 +18,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Mono for running NuGet.exe
+      - name: Install mono and get nuget.exe
         run: |
           sudo apt-get update
           sudo apt-get install -y mono-complete
@@ -84,7 +84,7 @@ jobs:
               # Repack
               Push-Location $expandDir
               Write-Host "Packing $($nuspecFile.Name)..."
-              mono ./nuget.exe pack $nuspecFile.FullName -NoDefaultExcludes -OutputDirectory $pkg.DirectoryName
+              mono "$PWD/nuget.exe" pack $nuspecFile.FullName -NoDefaultExcludes -OutputDirectory $pkg.DirectoryName
               Pop-Location
 
               # Clean up expanded folder
