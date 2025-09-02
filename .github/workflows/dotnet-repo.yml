@@ -37,6 +37,7 @@ jobs:
     uses: MagmaWorks/Actions/.github/workflows/dotnet-pack-release.yml@main
     with:
       dotnet: ${{ inputs.dotnet }}
+      release: ${{ github.event_name == 'release' }}
     permissions:
       actions: write
       contents: write
