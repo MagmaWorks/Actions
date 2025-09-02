@@ -40,6 +40,7 @@ jobs:
           $allPkgs = Get-ChildItem -Recurse -Include *.nupkg,*.snupkg
           if (-not $allPkgs) { throw "No packages found" }
 
+          # Rename all files: remove -preview
           foreach ($pkg in $allPkgs) {
               $newName = $pkg.Name -replace '-preview',''
               if ($pkg.Name -ne $newName) {
@@ -47,9 +48,9 @@ jobs:
               }
           }
 
-          # Take first renamed nupkg to extract version (they should all match)
-          $firstPkg = $allPkgs | Where-Object { $_.Extension -eq ".nupkg" } | Select-Object -First 1
-          if ($firstPkg -match '\d+\.\d+\.\d+(\.(\d+))?') {
+          # Take first renamed nupkg to extract version
+          $firstPkg = Get-ChildItem -Recurse -Filter "*.nupkg" | Select-Object -First 1
+          if ($firstPkg.Name -match '\d+\.\d+\.\d+(\.(\d+))?') {
               $parts = $matches[0] -split '\.'
               $major = $parts[0]
               $minor = $parts[1]
