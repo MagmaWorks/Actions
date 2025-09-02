@@ -1,4 +1,4 @@
-name: Package and Release .NET
+name: Package and create draft release .NET
 
 on:
   workflow_call:
@@ -7,14 +7,6 @@ on:
         description: "Setup a specific dotnet version"
         type: string
         required: false
-      release:
-        description: "Set to true if this is a release event"
-        type: boolean
-        required: false
-        default: false
-    secrets:
-      NUGET_API_KEY:
-        required: true
 
 jobs:
   package:
@@ -36,73 +28,46 @@ jobs:
           dotnet-version: ${{ inputs.dotnet }}
       
       - name: Package
-        run: dotnet pack --configuration Release -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg /p:DebugType=portable /property:Configuration=Debug
+        run: |
+          dotnet pack --configuration Release \
+            -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg \
+            /p:DebugType=portable /property:Configuration=Debug
 
-      - name: Get version from Package name
+      - name: Rename packages and get version tag
         id: get_version
         shell: pwsh
-        env:
-          RELEASE: ${{ inputs.release }}
         run: |
-          $pkgName = (Get-ChildItem -Recurse -Filter *.nupkg | Select-Object -First 1).Name
+          $pkg = Get-ChildItem -Recurse -Include *.nupkg,*.snupkg | Select-Object -First 1
+          if (-not $pkg) { throw "No package found" }
 
-          # Regex: Major.Minor.Patch[-preview.Build]
-          if ($pkgName -match '\d+\.\d+\.\d+(?:-preview\.(\d+))?') {
-              $fullVersion = $matches[0] -replace '-preview','' -split '\.'
-              $majorVersion = $fullVersion[0]
-              $minorVersion = $fullVersion[1]
-              $patchVersion = $fullVersion[2]
-
-              # Build number is the preview number if exists, else 0
-              $buildVersion = if ($matches[1]) { $matches[1] } else { 0 }
-          } else {
-              Write-Error "Could not parse version from package name: $pkgName"
-              exit 1
+          # Rename to remove -preview
+          $newName = $pkg.Name -replace '-preview',''
+          if ($pkg.Name -ne $newName) {
+            Rename-Item $pkg.FullName $newName
           }
 
-          if ([bool]::Parse($env:RELEASE)) {
-              $versionTag = "$majorVersion.$minorVersion.$patchVersion"
+          # Parse version from renamed name
+          if ($newName -match '\d+\.\d+\.\d+(\.(\d+))?') {
+              $parts = $matches[0] -split '\.'
+              $major = $parts[0]
+              $minor = $parts[1]
+              $patch = $parts[2]
+              $build = if ($parts.Length -ge 4) { $parts[3] } else { 0 }
           } else {
-              $versionTag = "$majorVersion.$minorVersion.$patchVersion.$buildVersion"
+              throw "Could not parse version from package name: $newName"
           }
 
+          $versionTag = "$major.$minor.$patch.$build"
           echo "VERSION_TAG=$versionTag" >> $env:GITHUB_OUTPUT
           echo "Version tag: $versionTag"
-          
-      - name: Create draft release (only if not release)
-        if: ${{ inputs.release == false }}
+
+      - name: Create draft release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "./**/*.nupkg"
+          artifacts: |
+            ./**/*.nupkg
+            ./**/*.snupkg
           tag: "${{ steps.get_version.outputs.VERSION_TAG }}"
           draft: true
           allowUpdates: true
           updateOnlyUnreleased: true
-
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    needs: package
-    if: ${{ inputs.release }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Update draft release
-        uses: ncipollo/release-action@v1
-        with:
-          artifacts: "./**/*.nupkg"
-          tag: "${{ needs.package.outputs.version-tag }}"
-          draft: false
-          makeLatest: true
-          allowUpdates: true
-          removeArtifacts: true
-          updateOnlyUnreleased: false
-      
-      - name: Push to NuGet
-        run: dotnet nuget push "**/*.nupkg" --skip-duplicate --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
-
-      - name: Delete previous draft releases
-        uses: hugo19941994/delete-draft-releases@v1.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
