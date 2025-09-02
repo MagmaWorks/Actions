@@ -18,6 +18,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install NuGet CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nuget
+
       - name: Strip build number, rename packages, update nuspec, and tag git
         id: rename
         shell: pwsh
@@ -78,7 +83,7 @@ jobs:
               # Repack
               Push-Location $expandDir
               Write-Host "Packing $($nuspecFile.Name)..."
-              mono ./nuget.exe pack $nuspecFile.FullName -NoDefaultExcludes -OutputDirectory $pkg.DirectoryName
+              nuget pack $nuspecFile.FullName -NoDefaultExcludes -OutputDirectory $pkg.DirectoryName
               Pop-Location
 
               # Clean up expanded folder
