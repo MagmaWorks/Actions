@@ -12,6 +12,9 @@ on:
         type: boolean
         required: false
         default: false
+      secrets:
+      NUGET_API_KEY:
+        required: true
 
 jobs:
   package:
