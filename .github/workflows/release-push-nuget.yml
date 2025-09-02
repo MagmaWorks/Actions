@@ -18,9 +18,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install NuGet CLI
-        run: sudo snap install nuget --classic
-
       - name: Strip build number, rename packages, update nuspec, and tag git
         id: rename
         shell: pwsh
@@ -31,6 +28,11 @@ jobs:
           if ($artifacts.Count -eq 0) {
               Write-Error "No packages found in ./artifacts"
               exit 1
+          }
+
+          if (-not (Test-Path "./nuget.exe")) {
+              Write-Host "Downloading NuGet CLI..."
+              Invoke-WebRequest -Uri "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe" -OutFile "./nuget.exe"
           }
 
           $suffix = if ($env:GITHUB_PRERELEASE -eq 'true') { '-beta' } else { '' }
@@ -75,7 +77,8 @@ jobs:
 
               # Repack
               Push-Location $expandDir
-              nuget pack *.nuspec -NoDefaultExcludes -OutputDirectory $pkg.DirectoryName
+              Write-Host "Packing $($nuspecFile.Name)..."
+              mono ./nuget.exe pack $nuspecFile.FullName -NoDefaultExcludes -OutputDirectory $pkg.DirectoryName
               Pop-Location
 
               # Clean up expanded folder
