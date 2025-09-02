@@ -72,7 +72,7 @@ jobs:
 
               # Repack
               Push-Location $expandDir
-              nuget pack *.nuspec -NoDefaultExcludes -OutputDirectory $pkg.DirectoryName
+              dotnet pack $nuspecFile.FullName -o $pkg.DirectoryName --no-build
               Pop-Location
 
               # Clean up expanded folder
