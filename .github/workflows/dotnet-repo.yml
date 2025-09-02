@@ -12,12 +12,13 @@ on:
       codecov:
         type: boolean
         default: true
-    #secrets:
-    #  NUGET_API_KEY:
-    #    required: false
+    secrets:
+      NUGET_API_KEY:
+        required: false
         
 jobs:
   build-test:
+    if: github.event_name != 'release'
     uses: MagmaWorks/Actions/.github/workflows/dotnet-build-test.yml@main
     with:
       lint: ${{ inputs.lint }}
@@ -28,7 +29,7 @@ jobs:
   
   codecov-upload:
     needs: build-test
-    if: ${{ inputs.codecov == true }}
+    if: ${{ inputs.codecov == true }} && github.event_name != 'release'
     uses: MagmaWorks/Actions/.github/workflows/codecov-upload.yml@main
     permissions:
       checks: write
@@ -43,6 +44,14 @@ jobs:
     permissions:
       actions: write
       contents: write
-      pull-requests: write
       checks: write
-      attestations: write     
+
+  push-nuget:
+    if: github.event_name == 'release'
+    uses: MagmaWorks/Actions/.github/workflows/push-nuget.yml@main
+    secrets:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: write
+      actions: write
