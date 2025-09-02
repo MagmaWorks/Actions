@@ -18,6 +18,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install NuGet CLI
+        run: sudo snap install nuget --classic
+
       - name: Strip build number, rename packages, update nuspec, and tag git
         id: rename
         shell: pwsh
@@ -72,7 +75,7 @@ jobs:
 
               # Repack
               Push-Location $expandDir
-              dotnet pack $nuspecFile.FullName -o $pkg.DirectoryName --no-build
+              nuget pack *.nuspec -NoDefaultExcludes -OutputDirectory $pkg.DirectoryName
               Pop-Location
 
               # Clean up expanded folder
