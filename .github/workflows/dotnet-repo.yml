@@ -14,7 +14,7 @@ on:
         default: true
     secrets:
       NUGET_API_KEY:
-        required: true
+        required: false
         
 jobs:
   build-test:
