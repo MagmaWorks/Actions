@@ -20,10 +20,8 @@ jobs:
 
       - name: Install NuGet CLI
         run: |
-          sudo sh -c 'echo "deb http://archive.ubuntu.com/ubuntu jammy main universe" > /etc/apt/sources.list.d/jammy.list'
           sudo apt-get update
-          sudo apt-get install mono-complete
-          sudo apt-get install nuget
+          sudo apt-get install -y mono-complete
 
       - name: Strip build number, rename packages, update nuspec, and tag git
         id: rename
@@ -37,6 +35,8 @@ jobs:
               exit 1
           }
 
+          curl -L -o ./nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe
+          
           if (-not (Test-Path "./nuget.exe")) {
               Write-Host "Downloading NuGet CLI..."
               Invoke-WebRequest -Uri "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe" -OutFile "./nuget.exe"
@@ -85,7 +85,7 @@ jobs:
               # Repack
               Push-Location $expandDir
               Write-Host "Packing $($nuspecFile.Name)..."
-              nuget pack $nuspecFile.FullName -NoDefaultExcludes -OutputDirectory $pkg.DirectoryName
+              mono ./nuget.exe pack $nuspecFile.FullName -NoDefaultExcludes -OutputDirectory $pkg.DirectoryName
               Pop-Location
 
               # Clean up expanded folder
