@@ -54,6 +54,9 @@ jobs:
           echo "VERSION_TAG=$newTag" >> $env:GITHUB_OUTPUT
           echo "Renamed packages. Version tag: $newTag"
 
+          git tag $newTag
+          git push origin $newTag
+
       - name: Push to NuGet
         run: dotnet nuget push "./artifacts/*.*nupkg" --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
 
