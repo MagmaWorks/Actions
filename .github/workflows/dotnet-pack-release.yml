@@ -12,7 +12,7 @@ on:
         type: boolean
         required: false
         default: false
-      secrets:
+    secrets:
       NUGET_API_KEY:
         required: true
 
