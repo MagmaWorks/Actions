@@ -38,6 +38,8 @@ jobs:
     with:
       dotnet: ${{ inputs.dotnet }}
       release: ${{ github.event_name == 'release' }}
+    secrets:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
     permissions:
       actions: write
       contents: write
