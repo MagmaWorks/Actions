@@ -84,7 +84,7 @@ jobs:
               # Repack
               Push-Location $expandDir
               Write-Host "Packing $($nuspecFile.Name)..."
-              mono "$PWD/nuget.exe" pack $nuspecFile.FullName -NoDefaultExcludes -OutputDirectory $pkg.DirectoryName
+              mono "$env:GITHUB_WORKSPACE/nuget.exe" pack $nuspecFile.FullName -NoDefaultExcludes -OutputDirectory $pkg.DirectoryName
               Pop-Location
 
               # Clean up expanded folder
