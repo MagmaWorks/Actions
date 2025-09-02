@@ -48,7 +48,7 @@ jobs:
 
   push-nuget:
     if: github.event_name == 'release'
-    uses: MagmaWorks/Actions/.github/workflows/push-nuget.yml@main
+    uses: MagmaWorks/Actions/.github/workflows/release-push-nuget.yml@main
     secrets:
       NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
     permissions:
