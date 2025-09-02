@@ -18,42 +18,48 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Strip build number and compute version tag
+      - name: Strip build number, rename packages, and tag git
         id: rename
         shell: pwsh
         run: |
           $pkgFiles = Get-ChildItem -Recurse -Path ./artifacts -Include *.nupkg, *.snupkg
-
+      
           if ($pkgFiles.Count -eq 0) {
               Write-Error "No NuGet packages found in ./artifacts"
               exit 1
           }
-
+      
           $newTag = ""
           foreach ($pkg in $pkgFiles) {
-              # Match version: Major.Minor.Patch.Build
-              if ($pkg.Name -match '(\d+\.\d+\.\d+)\.\d+(\..*)') {
-                  $majorMinorPatch = $matches[1]
-                  $suffix = $matches[2] # e.g., .nupkg or .snupkg
-                  $newName = "$majorMinorPatch$suffix"
+              # Match version: Major.Minor.Patch.Build anywhere before extension
+              if ($pkg.Name -match '(.*?)(\d+\.\d+\.\d+)\.\d+(\..*)') {
+                  $prefix = $matches[1]      # e.g., MagmaWorks.Uncertainties.
+                  $majorMinorPatch = $matches[2]  # 0.0.7
+                  $suffix = $matches[3]      # .nupkg or .snupkg
+                  $newName = "$prefix$majorMinorPatch$suffix"
                   $newPath = Join-Path $pkg.DirectoryName $newName
-                  Rename-Item $pkg.FullName $newPath -Force
-                  if (-not $newTag) {
-                      $newTag = $majorMinorPatch
+      
+                  if (-not (Test-Path $newPath)) {
+                      Rename-Item $pkg.FullName $newPath
+                  } else {
+                      Write-Warning "Skipping rename, target already exists: $newName"
                   }
+      
+                  if (-not $newTag) { $newTag = $majorMinorPatch }
               } else {
                   Write-Warning "Skipping file (does not match expected pattern): $($pkg.Name)"
               }
           }
-
+      
           if (-not $newTag) {
               Write-Error "Failed to determine version tag from packages."
               exit 1
           }
-
+      
           echo "VERSION_TAG=$newTag" >> $env:GITHUB_OUTPUT
-          echo "Renamed packages. Version tag: $newTag"
-
+          echo "Renamed packages and stripped build number. Version tag: $newTag"
+      
+          # Git tag and push
           git tag $newTag
           git push origin $newTag
 
