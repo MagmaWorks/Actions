@@ -5,6 +5,8 @@ on:
     secrets:
       NUGET_API_KEY:
         required: true
+      GITHUB_TOKEN:
+        required: true
 
 jobs:
   Release-NuGet-Packages:
@@ -18,53 +20,77 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Strip build number, rename packages, and tag git
+      - name: Strip build number, rename packages, update nuspec, and tag git
         id: rename
         shell: pwsh
+        env:
+          GITHUB_PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
-          $pkgFiles = Get-ChildItem -Recurse -Path ./artifacts -Include *.nupkg, *.snupkg
-      
-          if ($pkgFiles.Count -eq 0) {
-              Write-Error "No NuGet packages found in ./artifacts"
+          $artifacts = Get-ChildItem -Path ./artifacts -Include *.nupkg, *.snupkg
+          if ($artifacts.Count -eq 0) {
+              Write-Error "No packages found in ./artifacts"
               exit 1
           }
-      
+
+          $suffix = if ($env:GITHUB_PRERELEASE -eq 'true') { '-beta' } else { '' }
           $newTag = ""
-          foreach ($pkg in $pkgFiles) {
-              # Match version: Major.Minor.Patch.Build anywhere before extension
+
+          foreach ($pkg in $artifacts) {
+              Write-Host "Processing $($pkg.Name)..."
+
+              # Match version in filename: Major.Minor.Patch.Build
               if ($pkg.Name -match '(.*?)(\d+\.\d+\.\d+)\.\d+(\..*)') {
-                  $prefix = $matches[1]      # e.g., MagmaWorks.Uncertainties.
-                  $majorMinorPatch = $matches[2]  # 0.0.7
-                  $suffix = $matches[3]      # .nupkg or .snupkg
-                  $newName = "$prefix$majorMinorPatch$suffix"
+                  $prefix = $matches[1]
+                  $majorMinorPatch = $matches[2]
+                  $extension = $matches[3]
+
+                  # Rename file without build number
+                  $newName = "$prefix$majorMinorPatch$extension"
                   $newPath = Join-Path $pkg.DirectoryName $newName
-      
                   if (-not (Test-Path $newPath)) {
                       Rename-Item $pkg.FullName $newPath
-                  } else {
-                      Write-Warning "Skipping rename, target already exists: $newName"
                   }
-      
+
                   if (-not $newTag) { $newTag = $majorMinorPatch }
+                  $pkg = Get-Item $newPath
               } else {
                   Write-Warning "Skipping file (does not match expected pattern): $($pkg.Name)"
+                  continue
               }
+
+              # Expand archive in a subfolder
+              $expandDir = Join-Path $pkg.DirectoryName ([System.IO.Path]::GetFileNameWithoutExtension($pkg.Name))
+              mkdir $expandDir
+              Expand-Archive $pkg.FullName -DestinationPath $expandDir -Force
+
+              # Delete original package
+              Remove-Item $pkg.FullName -Force
+
+              # Update nuspec
+              $nuspecFile = Get-ChildItem $expandDir -Filter *.nuspec | Select-Object -First 1
+              [xml]$nuspecXml = Get-Content $nuspecFile.FullName
+              $nuspecXml.package.metadata.version = $nuspecXml.package.metadata.version -replace '-preview\.\d+', $suffix
+              $nuspecXml.Save($nuspecFile.FullName)
+
+              # Repack
+              Push-Location $expandDir
+              nuget pack *.nuspec -NoDefaultExcludes -OutputDirectory $pkg.DirectoryName
+              Pop-Location
+
+              # Clean up expanded folder
+              Remove-Item $expandDir -Force -Recurse
           }
-      
-          if (-not $newTag) {
-              Write-Error "Failed to determine version tag from packages."
-              exit 1
-          }
-      
+
           echo "VERSION_TAG=$newTag" >> $env:GITHUB_OUTPUT
-          echo "Renamed packages and stripped build number. Version tag: $newTag"
-      
-          # Git tag and push
+          Write-Host "Renamed packages, updated nuspec, stripped build numbers. Version tag: $newTag"
+
+          # Git tag
           git tag $newTag
           git push origin $newTag
 
       - name: Push to NuGet
-        run: dotnet nuget push "./**/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push "./artifacts/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
 
       - name: Update release with renamed packages
         uses: ncipollo/release-action@v1
