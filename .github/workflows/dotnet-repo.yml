@@ -51,7 +51,6 @@ jobs:
     uses: MagmaWorks/Actions/.github/workflows/push-nuget.yml@main
     secrets:
       NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     permissions:
       contents: write
       actions: write
