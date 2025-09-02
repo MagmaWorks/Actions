@@ -12,9 +12,9 @@ on:
       codecov:
         type: boolean
         default: true
-    secrets:
-      NUGET_API_KEY:
-        required: false
+    #secrets:
+    #  NUGET_API_KEY:
+    #    required: false
         
 jobs:
   build-test:
@@ -34,18 +34,15 @@ jobs:
       checks: write
       pull-requests: write
       
-  release:
+  pack:
     needs: build-test
-    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release' }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     uses: MagmaWorks/Actions/.github/workflows/dotnet-pack-release.yml@main
     with:
       dotnet: ${{ inputs.dotnet }}
-      release: ${{ github.event_name == 'release' }}
     permissions:
       actions: write
       contents: write
       pull-requests: write
       checks: write
       attestations: write     
-    secrets:
-      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
