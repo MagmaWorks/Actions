@@ -64,9 +64,7 @@ jobs:
           git push origin $newTag
 
       - name: Push to NuGet
-        run: | 
-          dotnet nuget push "./**/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
-          dotnet nuget push "./**/*.snupkg" --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
+        run: dotnet nuget push "./**/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
 
       - name: Update release with renamed packages
         uses: ncipollo/release-action@v1
