@@ -24,10 +24,7 @@ jobs:
         env:
           GITHUB_PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
-          Write-Host "Contents of ./artifacts:"
-          Get-ChildItem ./artifacts -Recurse | ForEach-Object { Write-Host $_.FullName }
-
-          $artifacts = Get-ChildItem -Path ./artifacts -Include *.nupkg, *.snupkg
+          $artifacts = Get-ChildItem -Recurse -Path ./artifacts -Include *.nupkg, *.snupkg
           if ($artifacts.Count -eq 0) {
               Write-Error "No packages found in ./artifacts"
               exit 1
