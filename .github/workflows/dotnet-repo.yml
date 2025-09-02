@@ -12,7 +12,10 @@ on:
       codecov:
         type: boolean
         default: true
-
+    secrets:
+      NUGET_API_KEY:
+        required: true
+        
 jobs:
   build-test:
     uses: MagmaWorks/Actions/.github/workflows/dotnet-build-test.yml@main
