@@ -11,12 +11,64 @@ on:
         required: false
 
 jobs:
+  Setup-Status:
+    runs-on: ubuntu-latest
+    outputs:
+      sha_original: ${{ steps.set-sha.outputs.sha_original }}
+    steps:
+      - name: Determine initial SHA
+        id: set-sha
+        run: |
+          # For PRs, use head_sha; for pushes, use github.sha
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            echo "sha_original=$(jq -r .pull_request.head.sha < $GITHUB_EVENT_PATH)" >> $GITHUB_OUTPUT
+          else
+            echo "sha_original=${GITHUB_SHA}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set in-progress status on original SHA
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const sha = "${{ steps.set-sha.outputs.sha_original }}";
+            await github.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha,
+              state: 'pending',
+              context: 'CI',
+              description: 'Workflow started'
+            });
+
   Build-Test:
     runs-on: ubuntu-latest
     outputs:
       coverage-artifact: coverage
 
     steps:
+      # Determine commit SHA to be able to update status
+      - name: Determine commit SHA
+        id: head_sha
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "issue_comment" ]; then
+            export HEAD_SHA=$(gh pr view ${{ github.event.issue.number }} --json headRefName -q .headRefName)
+            git fetch origin $HEAD_SHA
+            export HEAD_SHA=$(git rev-parse origin/$HEAD_SHA)
+          else
+            export HEAD_SHA=${GITHUB_SHA}
+          fi
+          echo "HEAD_SHA=$HEAD_SHA" >> $GITHUB_OUTPUT
+
+      
+      - name: Set initial workflow status
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${{ steps.head_sha.outputs.HEAD_SHA }} \
+            -d '{"state":"pending","context":"CI / Lint / Build","description":"Workflow started"}'
+
       # Checkout the code
       - name: Checkout repository
         uses: actions/checkout@v4
