@@ -15,44 +15,59 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       coverage-artifact: coverage
-
-    steps:
-      # Determine commit SHA to be able to update status
-      - name: Determine commit SHA
-        id: head_sha
-        run: |
-          if [ "${GITHUB_EVENT_NAME}" = "issue_comment" ]; then
-            export HEAD_SHA=$(gh pr view ${{ github.event.issue.number }} --json headRefName -q .headRefName)
-            git fetch origin $HEAD_SHA
-            export HEAD_SHA=$(git rev-parse origin/$HEAD_SHA)
-          else
-            export HEAD_SHA=${GITHUB_SHA}
-          fi
-          echo "HEAD_SHA=$HEAD_SHA" >> $GITHUB_OUTPUT
-
+      sha: ${{ steps.record-sha.outputs.sha }}
       
-      - name: Set initial workflow status
+    steps:
+      - name: Record SHA
+        id: record-sha
         run: |
-          curl -s -X POST \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${{ steps.head_sha.outputs.HEAD_SHA }} \
-            -d '{"state":"pending","context":"CI / Lint / Build","description":"Workflow started"}'
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "issue_comment" ]]; then
+            # When triggered via "ci" comment, use the PR head SHA
+            echo "sha=${{ github.event.issue.pull_request.head.sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "sha=${GITHUB_SHA}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Find CI check run
+        id: find-check
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: "${{ steps.record-sha.outputs.sha }}", // use recorded SHA
+            });
+            const check = data.check_runs.find(c => c.name === "CI");
+            if (!check) {
+              core.setFailed("No existing check run named 'CI' found.");
+            } else {
+              core.setOutput("check_id", check.id);
+            }
+      
+      - name: Update GitHub Check (in progress)
+        id: update-check
+        uses: LouisBrunner/checks-action@v1.6.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          check_id: ${{ steps.find-check.outputs.check_id }}
+          status: "in_progress"
+          sha: ${{ steps.record-sha.outputs.sha }}
 
-      # Checkout the code
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # Setup .NET
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         if: ${{ inputs.dotnet != '' }}
         with:
           dotnet-version: ${{ inputs.dotnet }}
 
-      # Cache NuGet packages
       - name: Cache NuGet packages
         uses: actions/cache@v3
         with:
@@ -61,7 +76,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
-      # Lint (only on PRs if lint input is true) and comment if fixes were pushed
       - name: Run Lint and push fixes
         if: github.event_name == 'pull_request' && inputs.lint == true
         id: lint-check
@@ -70,30 +84,10 @@ jobs:
           auto_fix: true
           dotnet_format: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Comment "ci" and stop run if lint pushed changes
-        if: github.event_name == 'pull_request' && inputs.lint == true
-        run: |
-          if [ "$(git rev-parse HEAD)" != "${{ github.event.pull_request.head.sha }}" ]; then
-            echo "Lint pushed changes, commenting 'ci' on PR #${{ github.event.pull_request.number }}"
-            gh api \
-              --method POST \
-              -H "Accept: application/vnd.github+json" \
-              /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
-              -f body='ci'
-            echo "Stopping workflow"
-            exit 78
-          else
-            echo "No changes from lint"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Build and restore solution
       - name: Build solution
         run: dotnet build ${{ inputs.solution-path }} --configuration Release
 
-      # Test and collect coverage
       - name: Test projects
         run: |
           dotnet test ${{ inputs.solution-path }} \
@@ -104,7 +98,6 @@ jobs:
             --logger trx \
             --results-directory coverage
 
-      # Upload coverage for downstream jobs
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
