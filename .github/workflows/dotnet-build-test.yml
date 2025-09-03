@@ -18,6 +18,13 @@ jobs:
       sha: ${{ steps.final-sha.outputs.sha }}
       
     steps:
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: 1891043
+          private-key: ${{ secrets.CHECK_STATUS_TOKEN }}
+          
       # -------------------------------
       # Record the initial SHA
       # -------------------------------
@@ -71,7 +78,7 @@ jobs:
         id: update-check
         uses: LouisBrunner/checks-action@v1.6.0
         with:
-          token: ${{ secrets.CHECK_STATUS_TOKEN }}
+          token: ${{ steps.generate-token.outputs.token }}
           check_id: ${{ steps.find-check.outputs.check_id }}
           status: "in_progress"
           sha: ${{ steps.record-sha.outputs.sha }}
@@ -133,7 +140,7 @@ jobs:
         if: ${{ steps.final-sha.outputs.sha_changed == 'true' }}
         uses: LouisBrunner/checks-action@v1.6.0
         with:
-          token: ${{ secrets.CHECK_STATUS_TOKEN }}
+          token: ${{ steps.generate-token.outputs.token }}
           name: "ci / build-test / Build-Test"
           status: "in_progress"
           sha: ${{ steps.final-sha.outputs.sha }}
@@ -167,7 +174,7 @@ jobs:
         if: always()
         uses: LouisBrunner/checks-action@v1.6.0
         with:
-          token: ${{ secrets.CHECK_STATUS_TOKEN }}
+          token: ${{ steps.generate-token.outputs.token }}
           check_id: ${{ steps.find-check.outputs.check_id }}
           status: "completed"
           conclusion: ${{ job.status }}
@@ -177,7 +184,7 @@ jobs:
         if: ${{ always() && steps.final-sha.outputs.sha_changed == 'true' }}
         uses: LouisBrunner/checks-action@v1.6.0
         with:
-          token: ${{ secrets.CHECK_STATUS_TOKEN }}
+          token: ${{ steps.generate-token.outputs.token }}
           check_id: ${{ steps.update-check-lint.outputs.check_id }}
           status: "completed"
           conclusion: ${{ job.status }}
