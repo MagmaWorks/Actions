@@ -30,7 +30,7 @@ jobs:
       checks: write
       issues: write
     secrets: inherit
-  
+      
   codecov-upload:
     needs: build-test
     if: |
