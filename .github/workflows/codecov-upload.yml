@@ -2,6 +2,18 @@ name: Codecov Upload
 
 on:
   workflow_call:
+    inputs:
+      sha:
+        type: string
+        required: false
+      coverage-name:
+        type: string
+        required: false
+        default: coverage
+      coverage-dir:
+        type: string
+        required: false
+        default: coverage
 
 jobs:
   Codecov:
@@ -13,12 +25,13 @@ jobs:
       - name: Download coverage artifacts
         uses: actions/download-artifact@v4
         with:
-          name: coverage
-          path: coverage
+          name: ${{ inputs.coverage-name }}
+          path: ${{ inputs.coverage-dir }}
 
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v5
         with:
-          directory: coverage
+          directory: ${{ inputs.coverage-dir }}
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
+          sha: ${{ inputs.sha != '' && inputs.sha || github.event.pull_request.head.sha || github.sha }}
