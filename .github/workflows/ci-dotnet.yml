@@ -31,6 +31,7 @@ jobs:
     permissions:
       contents: write 
       checks: write
+      issues: write
   
   codecov-upload:
     needs: build-test
