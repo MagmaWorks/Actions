@@ -53,7 +53,7 @@ jobs:
     uses: MagmaWorks/Actions/.github/workflows/dotnet-pack-release.yml@main
     with:
       dotnet: ${{ inputs.dotnet }}
-      sha: ${{ build-test.outputs.sha }}
+      sha: ${{ jobs.build-test.outputs.sha }}
     permissions:
       actions: write
       contents: write
