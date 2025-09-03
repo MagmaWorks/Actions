@@ -48,20 +48,24 @@ jobs:
           auto_fix: true
           dotnet_format: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
+      
       - name: Comment "ci" and stop run if lint pushed changes
         if: github.event_name == 'pull_request' && inputs.lint == true
         run: |
           if [ "$(git rev-parse HEAD)" != "${{ github.event.pull_request.head.sha }}" ]; then
-            echo "Lint pushed changes, commenting 'ci'"
-            gh pr comment ${{ github.event.pull_request.number }} --body "ci"
+            echo "Lint pushed changes, commenting 'ci' on PR #${{ github.event.pull_request.number }}"
+            gh api \
+              --method POST \
+              -H "Accept: application/vnd.github+json" \
+              /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+              -f body='ci'
             echo "Stopping workflow"
             exit 78
           else
             echo "No changes from lint"
           fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Build and restore solution
       - name: Build solution
