@@ -12,9 +12,6 @@ on:
       codecov:
         type: boolean
         default: true
-    secrets:
-      NUGET_API_KEY:
-        required: false
         
 jobs:
   build-test:
@@ -64,8 +61,7 @@ jobs:
   push-nuget:
     if: github.event_name == 'release'
     uses: MagmaWorks/Actions/.github/workflows/release-push-nuget.yml@main
-    secrets:
-      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+    secrets: inherit
     permissions:
       contents: write
       actions: write
