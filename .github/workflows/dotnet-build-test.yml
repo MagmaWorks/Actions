@@ -41,6 +41,12 @@ jobs:
               repo: context.repo.repo,
               ref: "${{ steps.record-sha.outputs.sha }}", // use recorded SHA
             });
+
+            console.log("All check run names for this ref:");
+            for (const run of data.check_runs) {
+              console.log(`- id=${run.id}, name=${run.name}, status=${run.status}, conclusion=${run.conclusion}`);
+            }
+            
             const check = data.check_runs.find(c => c.name === "CI");
             if (!check) {
               core.setFailed("No existing check run named 'CI' found.");
