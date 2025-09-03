@@ -11,36 +11,6 @@ on:
         required: false
 
 jobs:
-  Setup-Status:
-    runs-on: ubuntu-latest
-    outputs:
-      sha_original: ${{ steps.set-sha.outputs.sha_original }}
-    steps:
-      - name: Determine initial SHA
-        id: set-sha
-        run: |
-          # For PRs, use head_sha; for pushes, use github.sha
-          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
-            echo "sha_original=$(jq -r .pull_request.head.sha < $GITHUB_EVENT_PATH)" >> $GITHUB_OUTPUT
-          else
-            echo "sha_original=${GITHUB_SHA}" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Set in-progress status on original SHA
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const sha = "${{ steps.set-sha.outputs.sha_original }}";
-            await github.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha,
-              state: 'pending',
-              context: 'CI',
-              description: 'Workflow started'
-            });
-
   Build-Test:
     runs-on: ubuntu-latest
     outputs:
