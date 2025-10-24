@@ -47,10 +47,10 @@ jobs:
         id: lint-check
         uses: wearerequired/lint-action@v2
         with:
-          auto_fix: false
+          auto_fix: true
           dotnet_format: true
-          continue_on_error: false
           git_name: "Vivid Orange"
+          commit_message: "Fix code style issues with ${linter}.\nMake a new commit to rerun the pipeline checks."
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       # -------------------------------
