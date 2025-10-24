@@ -31,15 +31,6 @@ jobs:
         with:
           dotnet-version: ${{ inputs.dotnet }}
 
-      - name: Cache NuGet packages
-        if: inputs.nuget-cache == true
-        uses: actions/cache@v3
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
-
       - name: Run Lint and push fixes
         if: github.event_name == 'pull_request' && inputs.lint == true
         id: lint-check
