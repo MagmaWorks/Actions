@@ -15,74 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       coverage-artifact: coverage
-      sha: ${{ steps.final-sha.outputs.sha }}
       
     steps:
-      - name: Generate a token
-        id: generate-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: 1891043
-          private-key: ${{ secrets.CHECK_STATUS_TOKEN }}
-          
-      # -------------------------------
-      # Record the initial SHA
-      # -------------------------------
-      - name: Record SHA
-        id: record-sha
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            let sha;
-            if (context.eventName === "pull_request") {
-              sha = context.payload.pull_request.head.sha;
-            } else if (context.eventName === "issue_comment") {
-              const pr_number = context.payload.issue.number;
-              const { data: pr } = await github.rest.pulls.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: pr_number,
-              });
-              sha = pr.head.sha;
-            } else {
-              sha = context.sha;
-            }
-            core.setOutput("sha", sha);
-
-      # -------------------------------
-      # Find original CI check run
-      # -------------------------------
-      - name: Find CI check run
-        id: find-check
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { data } = await github.rest.checks.listForRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: "${{ steps.record-sha.outputs.sha }}",
-            });
-            const check = data.check_runs.find(c => c.name === "ci / build-test / Build-Test");
-            if (!check) {
-              core.setFailed("No existing check run named 'ci / build-test / Build-Test' found.");
-            } else {
-              core.setOutput("check_id", check.id);
-            }
-
-      # -------------------------------
-      # Set the original check to in_progress
-      # -------------------------------
-      - name: Update GitHub Check (in progress)
-        id: update-check
-        uses: LouisBrunner/checks-action@v2.0.0
-        with:
-          token: ${{ steps.generate-token.outputs.token }}
-          check_id: ${{ steps.find-check.outputs.check_id }}
-          status: "in_progress"
-          sha: ${{ steps.record-sha.outputs.sha }}
-
       # -------------------------------
       # Checkout & setup
       # -------------------------------
@@ -113,37 +47,9 @@ jobs:
         id: lint-check
         uses: wearerequired/lint-action@v2
         with:
-          auto_fix: true
+          auto_fix: false
           dotnet_format: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      # -------------------------------
-      # Determine final SHA and whether lint changed code
-      # -------------------------------
-      - name: Determine final SHA after lint
-        id: final-sha
-        run: |
-          ORIGINAL_SHA=${{ steps.record-sha.outputs.sha }}
-          HEAD_SHA=$(git rev-parse HEAD)
-          echo "sha=$HEAD_SHA" >> $GITHUB_OUTPUT
-
-          if [ "$HEAD_SHA" != "$ORIGINAL_SHA" ]; then
-            echo "sha_changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "sha_changed=false" >> $GITHUB_OUTPUT
-
-      # -------------------------------
-      # Create new check if lint changed code
-      # -------------------------------
-      - name: Create check after lint push (if changed)
-        id: update-check-lint
-        if: ${{ steps.final-sha.outputs.sha_changed == 'true' }}
-        uses: LouisBrunner/checks-action@v2.0.0
-        with:
-          token: ${{ steps.generate-token.outputs.token }}
-          name: "ci / build-test / Build-Test"
-          status: "in_progress"
-          sha: ${{ steps.final-sha.outputs.sha }}
 
       # -------------------------------
       # Build & Test
@@ -166,26 +72,3 @@ jobs:
         with:
           name: coverage
           path: coverage
-
-      # -------------------------------
-      # Complete checks
-      # -------------------------------
-      - name: Complete CI check for original SHA
-        if: always()
-        uses: LouisBrunner/checks-action@v2.0.0
-        with:
-          token: ${{ steps.generate-token.outputs.token }}
-          check_id: ${{ steps.find-check.outputs.check_id }}
-          status: "completed"
-          conclusion: ${{ job.status }}
-          sha: ${{ steps.record-sha.outputs.sha }}
-
-      - name: Complete CI check for new SHA (if changed)
-        if: ${{ always() && steps.final-sha.outputs.sha_changed == 'true' }}
-        uses: LouisBrunner/checks-action@v2.0.0
-        with:
-          token: ${{ steps.generate-token.outputs.token }}
-          check_id: ${{ steps.update-check-lint.outputs.check_id }}
-          status: "completed"
-          conclusion: ${{ job.status }}
-          sha: ${{ steps.final-sha.outputs.sha }}
