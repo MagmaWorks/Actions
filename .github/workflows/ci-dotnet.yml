@@ -25,9 +25,6 @@ jobs:
     needs: build-test
     if: ${{ inputs.codecov == true && github.event_name != 'release' }}
     uses: MagmaWorks/Actions/.github/workflows/codecov-upload.yml@main
-    permissions:
-      checks: write
-      pull-requests: write
       
   pack:
     needs: build-test
