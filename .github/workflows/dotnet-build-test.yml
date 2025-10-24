@@ -38,6 +38,7 @@ jobs:
         with:
           auto_fix: false
           dotnet_format: true
+          check_name: "Lint using ${linter}"
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build solution
