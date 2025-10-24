@@ -50,6 +50,7 @@ jobs:
           auto_fix: false
           dotnet_format: true
           continue_on_error: false
+          git_name: "Vivid Orange"
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       # -------------------------------
