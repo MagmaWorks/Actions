@@ -32,15 +32,8 @@ jobs:
     uses: MagmaWorks/Actions/.github/workflows/dotnet-pack-release.yml@main
     with:
       dotnet: ${{ inputs.dotnet }}
-    permissions:
-      actions: write
-      contents: write
-      checks: write
 
   push-nuget:
     if: github.event_name == 'release'
     uses: MagmaWorks/Actions/.github/workflows/release-push-nuget.yml@main
     secrets: inherit
-    permissions:
-      contents: write
-      actions: write
