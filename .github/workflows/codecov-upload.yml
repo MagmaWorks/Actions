@@ -3,9 +3,6 @@ name: Codecov Upload
 on:
   workflow_call:
     inputs:
-      sha:
-        type: string
-        required: false
       coverage-name:
         type: string
         required: false
@@ -29,16 +26,13 @@ jobs:
           path: ${{ inputs.coverage-dir }}
 
       - name: Upload to codecov.io (with input commit)
-        if: ${{ inputs.sha != '' }}
         uses: codecov/codecov-action@v5
         with:
           directory: ${{ inputs.coverage-dir }}
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
-          override_commit: ${{ inputs.sha }}
 
       - name: Upload to codecov.io
-        if: ${{ inputs.sha == '' }}
         uses: codecov/codecov-action@v5
         with:
           directory: ${{ inputs.coverage-dir }}
