@@ -182,7 +182,7 @@ jobs:
 
       - name: Complete CI check for new SHA (if changed)
         if: ${{ always() && steps.final-sha.outputs.sha_changed == 'true' }}
-        uses: LouisBrunner/checks-action@vv2.0.0
+        uses: LouisBrunner/checks-action@v2.0.0
         with:
           token: ${{ steps.generate-token.outputs.token }}
           check_id: ${{ steps.update-check-lint.outputs.check_id }}
