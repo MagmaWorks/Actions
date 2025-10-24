@@ -9,6 +9,9 @@ on:
       dotnet:
         type: string
         required: false
+      nuget-cache:
+        type: boolean
+        default: false
 
 jobs:
   Build-Test:
@@ -17,9 +20,6 @@ jobs:
       coverage-artifact: coverage
       
     steps:
-      # -------------------------------
-      # Checkout & setup
-      # -------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -32,6 +32,7 @@ jobs:
           dotnet-version: ${{ inputs.dotnet }}
 
       - name: Cache NuGet packages
+        if: inputs.nuget-cache == true
         uses: actions/cache@v3
         with:
           path: ~/.nuget/packages
@@ -39,23 +40,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
-      # -------------------------------
-      # Run Lint
-      # -------------------------------
       - name: Run Lint and push fixes
         if: github.event_name == 'pull_request' && inputs.lint == true
         id: lint-check
         uses: wearerequired/lint-action@v2
         with:
-          auto_fix: true
+          auto_fix: false
           dotnet_format: true
-          git_name: "Vivid Orange"
-          commit_message: "Fix code style issues with ${linter}.\nMake a new commit to rerun the pipeline checks."
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      # -------------------------------
-      # Build & Test
-      # -------------------------------
       - name: Build solution
         run: dotnet build ${{ inputs.solution-path }} --configuration Release
 
