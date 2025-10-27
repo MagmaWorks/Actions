@@ -4,14 +4,21 @@ on:
   workflow_call:
     inputs:
       dotnet:
+        description: 'Set this input to force the use of a specific dotnet version.'
         type: string
         required: false
       lint:
+        description: 'Run linting on PR. Default true.'
         type: boolean
         default: true
       codecov:
+        description: 'Upload coverage report to CodeCov.io. Default true.'
         type: boolean
         default: true
+      test-filter:
+        description: 'Filter expression for dotnet test (e.g., "Category!=Integration)")'
+        type: string
+        default: ''
         
 jobs:
   build-test:
@@ -20,6 +27,7 @@ jobs:
     with:
       lint: ${{ inputs.lint }}
       dotnet: ${{ inputs.dotnet }}
+      test-filter: ${{ inputs.test-filter }}
       
   codecov-upload:
     needs: build-test
