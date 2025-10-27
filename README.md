@@ -3,27 +3,61 @@
 
 The **CI Dispatcher** is an easy-to-use, automated CI tool designed to run GitHub Actions workflows from events from your local repo.  
 
----
-
-### What You Get
-
-- **Build** the project on pull requests - preventing merging code to main that does not compile.
-- Run **Test** to ensure all test pass succesfully before merging
-- **Coverage** using [codecov.io](https://app.codecov.io/gh/MagmaWorks) to track codecoverage which is reported in each PR.
-- A **Draft release** with automated **semantic versioning** is created in your repo when merging to main.
-- Automatically tag and push **NuGet** package when releasing a package.
-- **Unify CI logic** across repositories — no need to duplicate `.github/workflows`.  
-
----
-
 ## Contents
 
+- [What You Get](#what-you-get) – The benefits of the pipelines
+- [What it does](#what-it-does) – What the pipeline does
 - [How to use](#how-to-use) – See how to integrate and call the dispatcher from your repository.  
 - [How it works](#how-it-works) – Dive into the internal logic and event flow of the dispatcher.
 
----
 
-# How to use
+
+## What You Get
+
+- **Build** the project on pull requests - preventing merging code to main that does not compile.
+- **Linting** your pull request to enforce code styles
+- Run **Test** to ensure all test pass succesfully before merging
+- **Coverage** using [codecov.io](https://app.codecov.io/gh/MagmaWorks) to track codecoverage which is reported in each PR.
+- A **Draft release** with automated **semantic versioning** is created in your repo when merging to main.
+- Handle **tags** in github to automatically track versionings in main's git history
+- Automatically tag and push **NuGet** package when releasing a package.
+- **Unify CI logic** across repositories — no need to duplicate `.github/workflows`.  
+
+
+
+## What it does
+
+#### Pull requests (PR):
+- Lint (code style enforcement)
+- Build the project in release
+- Run test
+- Upload code coverage
+<img width="656" height="346" alt="image" src="https://github.com/user-attachments/assets/f1dd5dfa-59b5-4d19-991d-2d51b59a8e24" />
+
+
+
+
+#### Merges to main
+- Build
+- Run test
+- Upload code coverage
+- Tag the ref with automatically incremented semantic version numbering
+- create a new draft release package 
+<img width="657" height="347" alt="image" src="https://github.com/user-attachments/assets/2cbd8d13-999c-40da-85ad-0008668fb9a5" />
+
+
+
+
+#### Releases
+- Strip build number from package (1.2.3)
+- Upload package to NuGet
+- Delete draft releases
+<img width="669" height="345" alt="image" src="https://github.com/user-attachments/assets/493f05a0-c614-4f5e-ab19-ff389a33e03f" />
+
+
+
+
+## How to use
 
 Add this single workflow file in your repo at:
 .github/workflows/ci.yml
@@ -68,7 +102,9 @@ jobs:
       codecov: false     # Skip Codecov upload
 ```
 
-# How it works
+
+
+## How it works
 All logic runs through `ci-dotnet.yml`, which dispatches to specialised workflows depending on the event type.
 
 ci-dotnet.yml
