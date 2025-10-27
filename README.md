@@ -97,9 +97,10 @@ jobs:
     uses: MagmaWorks/Actions/.github/workflows/ci-dotnet.yml@main
     secrets: inherit
     with:
-      dotnet: '8.0.x'    # Optional .NET version
-      lint: false        # Disable linting
-      codecov: false     # Skip Codecov upload
+      dotnet: '8.0.x'                        # Optional .NET version
+      lint: false                            # Disable linting
+      codecov: false                         # Skip Codecov upload
+      test-filter: 'Category!=Integration'   # Filter expression for dotnet test
 ```
 
 
