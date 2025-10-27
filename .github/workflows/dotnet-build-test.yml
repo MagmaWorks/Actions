@@ -53,7 +53,7 @@ jobs:
             --no-restore \
             --collect:"XPlat Code Coverage" \
             --logger trx \
-            --results-directory coverage
+            --results-directory coverage \
             --${{ inputs.test-filter && format('--filter "{0}"', inputs.test-filter) || '' }}
 
       - name: Upload coverage artifact
