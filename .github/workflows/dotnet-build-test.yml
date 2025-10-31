@@ -13,10 +13,9 @@ on:
         description: 'Filter expression for dotnet test (e.g., "Category!=Integration)")'
         type: string
         default: ''
-      azure-artifacts-feed-user:
-        description: 'User name for private Azure artifacts NuGet feed'
-        type: string
-        default: ''
+      add-private-nuget:
+        type: boolean
+        default: false
 
 jobs:
   Build-Test:
@@ -38,16 +37,16 @@ jobs:
           dotnet-version: ${{ inputs.dotnet }}
 
       - name: Add private NuGet feeds
-        if: ${{ inputs.azure-artifacts-feed-user != '' }}
+        if: ${{ inputs.add-private-nuget }}
         run: |
           dotnet nuget add source https://nuget.devexpress.com/${{ secrets.DEVEXPRESS_NUGET_FEED }}/api/v3/index.json \
           -n devexpress \
           -u DevExpress \
           -p ${{ secrets.DEVEXPRESS_NUGET_TOKEN }} \
           --store-password-in-clear-text
-          dotnet nuget add source ${{ secrets.AZURE_ARTIFACTS_FEED_URL }} \
+          dotnet nuget add source ${{ env.AZURE_ARTIFACTS_FEED_URL }} \
           -n ww \
-          -u ${{ inputs.azure-artifacts-feed-user }} \
+          -u ${{ env.AZURE_ARTIFACTS_FEED_USER }} \
           -p ${{ secrets.AZURE_DEVOPS_TOKEN }} \
           --store-password-in-clear-text
 
