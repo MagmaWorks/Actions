@@ -19,10 +19,9 @@ on:
         description: 'Filter expression for dotnet test (e.g., "Category!=Integration)")'
         type: string
         default: ''
-      azure-artifacts-feed-user:
-        description: 'User name for private Azure artifacts NuGet feed'
-        type: string
-        default: ''
+      add-private-nuget:
+        type: boolean
+        default: false
         
 jobs:
   build-test:
@@ -33,14 +32,14 @@ jobs:
       lint: ${{ inputs.lint }}
       dotnet: ${{ inputs.dotnet }}
       test-filter: ${{ inputs.test-filter }}
-      azure-artifacts-feed-user: ${{ inputs.azure-artifacts-feed-user }}
+      add-private-nuget: ${{ inputs.add-private-nuget }}
       
   codecov-upload:
     needs: build-test
     if: ${{ inputs.codecov == true && github.event_name != 'release' }}
     uses: MagmaWorks/Actions/.github/workflows/codecov-upload.yml@main
     with:
-      is-private-repo: ${{ inputs.azure-artifacts-feed-user != '' }}
+      is-private-repo: ${{ inputs.add-private-nuget }}
       
   pack:
     needs: build-test
