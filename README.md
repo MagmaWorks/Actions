@@ -14,14 +14,14 @@ The **CI Dispatcher** is an easy-to-use, automated CI tool designed to run GitHu
 
 ## What You Get
 
-- **Build** the project on pull requests - preventing merging code to main that does not compile.
-- **Linting** your pull request to enforce code styles
-- Run **Test** to ensure all test pass succesfully before merging
-- **Coverage** using [codecov.io](https://app.codecov.io/gh/MagmaWorks) to track codecoverage which is reported in each PR.
-- A **Draft release** with automated **semantic versioning** is created in your repo when merging to main.
-- Handle **tags** in github to automatically track versionings in main's git history
-- Automatically tag and push **NuGet** package when releasing a package.
-- **Unify CI logic** across repositories — no need to duplicate `.github/workflows`.  
+- **Build** validation on pull requests — prevents merging broken code.
+- **Linting** for consistent code style enforcement - optionally.
+- **Unit Testing** with coverage tracking:
+- **Coverage reports** automatically uploaded to [codecov.io](https://app.codecov.io/gh/MagmaWorks) (public) or as a PR comment (for private repos).
+- **Package** libraries automatically and **draft release** creation with **semantic versioning** on merge to `main`.
+- **Version tagging** and **NuGet publishing** on release  .
+- **Private feed support** — seamlessly restore private NuGet package references from DevExpress and Azure Artifacts.
+- **Unified CI logic** across all repositories — managed centrally, no duplication of `.github/workflows`.  
 
 
 
@@ -29,29 +29,29 @@ The **CI Dispatcher** is an easy-to-use, automated CI tool designed to run GitHu
 
 #### Pull requests (PR):
 - Lint (code style enforcement)
-- Build the project in release
-- Run test
-- Upload code coverage
+- Build the project in release configuration
+- Run test with coverage collection
+- Upload coverage to Codecov (public repos only) and post results as a PR comment (both public and private).
 <img width="656" height="346" alt="image" src="https://github.com/user-attachments/assets/f1dd5dfa-59b5-4d19-991d-2d51b59a8e24" />
 
 
 
 
 #### Merges to main
-- Build
-- Run test
-- Upload code coverage
-- Tag the ref with automatically incremented semantic version numbering
-- create a new draft release package 
+- Build and test in Release configuration  
+- Upload coverage
+- Package `.nupkg` and `.snupkg` files
+- Auto-tag commit with semantic version number (1.2.3.4)
+- Create or update a **draft release**
 <img width="657" height="347" alt="image" src="https://github.com/user-attachments/assets/2cbd8d13-999c-40da-85ad-0008668fb9a5" />
 
 
 
 
 #### Releases
-- Strip build number from package (1.2.3)
-- Upload package to NuGet
-- Delete draft releases
+- Strip build number from package (e.g., `1.2.3.4 → 1.2.3`)  
+- Repackage and push to NuGet.org
+- Clean up old draft releases
 <img width="669" height="345" alt="image" src="https://github.com/user-attachments/assets/493f05a0-c614-4f5e-ab19-ff389a33e03f" />
 
 
@@ -101,6 +101,7 @@ jobs:
       lint: false                            # Disable linting
       codecov: false                         # Skip Codecov upload
       test-filter: 'Category!=Integration'   # Filter expression for dotnet test
+      private: true                          # Enables private repo logic
 ```
 
 
@@ -121,12 +122,13 @@ ci-dotnet.yml
 Runs on PRs and pushes.
 Steps:
 - Checkout repository
-- Setup .NET (optional)
-- Run dotnet format (optional lint step)
-- Build in Release configuration
-- Test with coverage collection
+- Setup a specific .NET version (optional input)
+- Add private NuGet feeds (if `private: true`)
+- Lint using dotnet format (optional lint code styling check)
+- Build project in Release configuration
+- Run Tests with coverage collection
 - Upload coverage artifact
-- Outputs: coverage → consumed by Codecov upload job
+- Outputs: Upload coverage and package artifacts (on merge to main)
 
 ### codecov-upload.yml
 
@@ -134,9 +136,8 @@ Uploads coverage reports to codecov.io.
 Uses organisation secret `CODECOV_TOKEN` (without having it passed down).
 
 Steps:
-- Checkout
-- Download coverage artifact
-- Upload to Codecov
+- For public repos: uploads to Codecov and posts a PR comment
+- For private repos: merges coverage results, generates Markdown summary, and posts as PR comment
 
 ### dotnet-pack-release.yml
 
@@ -144,11 +145,10 @@ Triggered on push to main.
 Builds and packages all .nupkg / .snupkg files, removes any -preview suffixes, and creates or updates a draft release tagged as Major.Minor.Patch.Build.
 
 Steps:
-- Checkout with full history
-- Setup .NET (optional)
-- dotnet pack in Release mode
-- Parse version from package name
-- Create or update draft GitHub release
+- Downloads package artifacts
+- Removes -preview suffix
+- Extracts semantic version number
+- Creates or updates a draft GitHub release with .nupkg and .snupkg files
 
 ### release-push-nuget.yml
 
@@ -158,13 +158,11 @@ Republishes the previously drafted packages to NuGet and cleans up old drafts.
 Requires: `NUGET_API_KEY` secret which must be passed from the local repo stub. By passing `secrets: inherit` in the local repo stub we pass the global organisation secret.
 
 Steps:
-- Download release assets
-- Strip build number from tag (1.2.3.4 → 1.2.3)
-- Update .nuspec version and repackage
-- Push version tag to Git
-- Push .nupkg to NuGet.org
-- Update release (finalize + attach new assets)
-- Delete old draft releases
+- Downloads release artifacts
+- Strips build number from version
+- Updates .nuspec and repackages
+- Pushes tag to Git and publishes package to NuGet.org
+- Cleans up old drafts
 
 
 ### Notes
@@ -173,3 +171,4 @@ Steps:
 - Reusable workflows can be called directly if fine-grained control is needed, or mixed with private repo requirements.
 - Default behaviour should cover 99% of use cases: PR validation, release drafting, and NuGet publishing
 - All jobs run on ubuntu-latest
+- Only private repos will have access to organisation secrets and variables.
