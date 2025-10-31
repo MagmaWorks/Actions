@@ -19,15 +19,31 @@ on:
         description: 'Filter expression for dotnet test (e.g., "Category!=Integration)")'
         type: string
         default: ''
+      azure-artifacts-feed-url:
+        description: 'URL for private Azure artifacts NuGet feed'
+        type: string
+        default: ''
+      azure-artifacts-feed-user:
+        description: 'User name for private Azure artifacts NuGet feed'
+        type: string
+        default: ''
+      devexpress-artifacts-feed-url:
+        description: 'URL for private DevExpress artifacts NuGet feed'
+        type: string
+        default: ''
         
 jobs:
   build-test:
     if: github.event_name != 'release'
-    uses: MagmaWorks/Actions/.github/workflows/dotnet-build-test.yml@main
+    uses: MagmaWorks/Actions/.github/workflows/dotnet-build-test.yml@test-pack
+    secrets: inherit
     with:
       lint: ${{ inputs.lint }}
       dotnet: ${{ inputs.dotnet }}
       test-filter: ${{ inputs.test-filter }}
+      azure-artifacts-feed-url: ${{ inputs.azure-artifacts-feed-url }}
+      azure-artifacts-feed-user: ${{ inputs.azure-artifacts-feed-user }}
+      devexpress-artifacts-feed-url: ${{ inputs.devexpress-artifacts-feed-url }}
       
   codecov-upload:
     needs: build-test
@@ -37,7 +53,7 @@ jobs:
   pack:
     needs: build-test
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    uses: MagmaWorks/Actions/.github/workflows/dotnet-pack-release.yml@main
+    uses: MagmaWorks/Actions/.github/workflows/dotnet-pack-release.yml@test-pack
     with:
       dotnet: ${{ inputs.dotnet }}
 

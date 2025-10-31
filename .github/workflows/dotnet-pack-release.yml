@@ -7,6 +7,14 @@ on:
         description: "Setup a specific dotnet version"
         type: string
         required: false
+      package-name:
+        type: string
+        required: false
+        default: package
+      package-dir:
+        type: string
+        required: false
+        default: package
 
 jobs:
   package:
@@ -15,23 +23,11 @@ jobs:
     outputs:
       version-tag: ${{ steps.get_version.outputs.VERSION_TAG }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v4
         with:
-          fetch-depth: 0
-          filter: tree:0
-
-      - name: Setup dotnet
-        if: ${{ inputs.dotnet != '' }}
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ inputs.dotnet }}
-      
-      - name: Package
-        run: |
-          dotnet pack --configuration Release \
-            -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg \
-            /p:DebugType=portable /property:Configuration=Debug
+          name: ${{ inputs.package-name }}
+          path: ${{ inputs.package-dir }}
 
       - name: Rename all packages and get version tag
         id: get_version
