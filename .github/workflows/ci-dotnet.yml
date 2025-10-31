@@ -19,7 +19,7 @@ on:
         description: 'Filter expression for dotnet test (e.g., "Category!=Integration)")'
         type: string
         default: ''
-      private-repo:
+      private:
         type: boolean
         default: false
         
@@ -32,14 +32,14 @@ jobs:
       lint: ${{ inputs.lint }}
       dotnet: ${{ inputs.dotnet }}
       test-filter: ${{ inputs.test-filter }}
-      add-private-nuget: ${{ inputs.private-repo }}
+      add-private-nuget: ${{ inputs.private }}
       
   codecov-upload:
     needs: build-test
     if: ${{ inputs.codecov == true && github.event_name != 'release' }}
     uses: MagmaWorks/Actions/.github/workflows/codecov-upload.yml@main
     with:
-      private-repo: ${{ inputs.private-repo }}
+      private-repo: ${{ inputs.private }}
       
   pack:
     needs: build-test
