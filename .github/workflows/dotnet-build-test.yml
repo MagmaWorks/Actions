@@ -13,12 +13,25 @@ on:
         description: 'Filter expression for dotnet test (e.g., "Category!=Integration)")'
         type: string
         default: ''
+      azure-artifacts-feed-url:
+        description: 'URL for private Azure artifacts NuGet feed'
+        type: string
+        default: ''
+      azure-artifacts-feed-user:
+        description: 'User name for private Azure artifacts NuGet feed'
+        type: string
+        default: ''
+      devexpress-artifacts-feed-url:
+        description: 'URL for private DevExpress artifacts NuGet feed'
+        type: string
+        default: ''
 
 jobs:
   Build-Test:
     runs-on: ubuntu-latest
     outputs:
       coverage-artifact: coverage
+      pack-artifact: package
       
     steps:
       - name: Checkout repository
@@ -61,3 +74,19 @@ jobs:
         with:
           name: coverage
           path: coverage
+
+      - name: Package
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: |
+          dotnet pack --no-build \
+            -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg \
+            /p:DebugType=portable /property:Configuration=Debug
+
+      - name: Upload package artifact
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: |
+            ./**/*.nupkg
+            ./**/*.snupkg
