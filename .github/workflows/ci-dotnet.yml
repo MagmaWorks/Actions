@@ -27,7 +27,7 @@ on:
 jobs:
   build-test:
     if: github.event_name != 'release'
-    uses: MagmaWorks/Actions/.github/workflows/dotnet-build-test.yml@test-pack
+    uses: MagmaWorks/Actions/.github/workflows/dotnet-build-test.yml@main
     secrets: inherit
     with:
       lint: ${{ inputs.lint }}
@@ -43,7 +43,7 @@ jobs:
   pack:
     needs: build-test
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    uses: MagmaWorks/Actions/.github/workflows/dotnet-pack-release.yml@test-pack
+    uses: MagmaWorks/Actions/.github/workflows/dotnet-pack-release.yml@main
     with:
       dotnet: ${{ inputs.dotnet }}
 
