@@ -36,6 +36,7 @@ jobs:
   build-test:
     if: github.event_name != 'release'
     uses: MagmaWorks/Actions/.github/workflows/dotnet-build-test.yml@test-pack
+    secrets: inherit
     with:
       lint: ${{ inputs.lint }}
       dotnet: ${{ inputs.dotnet }}
