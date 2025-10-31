@@ -61,7 +61,7 @@ jobs:
       - name: Package
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: |
-          dotnet pack --no-build \
+          dotnet pack --no-build --configuration Release \
             -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg \
             /p:DebugType=portable /property:Configuration=Debug
 
