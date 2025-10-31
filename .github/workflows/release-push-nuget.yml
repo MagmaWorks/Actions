@@ -2,6 +2,10 @@ name: Push NuGet from Release
 
 on:
   workflow_call:
+    inputs:
+      private-repo:
+        type: boolean
+        default: false
     secrets:
       NUGET_API_KEY:
         required: true
@@ -12,6 +16,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup .NET Core
+        if: ${{ inputs.private-repo }}        
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          source-url: ${{ vars.AZURE_ARTIFACTS_FEED_USER }}
+        env:
+          NUGET_AUTH_TOKEN: ${{ secrets.AZURE_DEVOPS_TOKEN }} 
 
       - name: Download release assets
         run: gh release download ${{ github.event.release.tag_name }} --dir ./artifacts
@@ -80,9 +93,19 @@ jobs:
           git tag $newTag
           git push origin $newTag
 
-      - name: Push to NuGet
+      - name: Push to NuGet.org
+        if: ${{ !inputs.private-repo }}
         run: |
-          dotnet nuget push "./artifacts/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
+          dotnet nuget push "./artifacts/*.nupkg" \
+          --source https://api.nuget.org/v3/index.json \
+          --api-key ${{ secrets.NUGET_API_KEY }}
+
+      - name: Push to Azure
+        if: ${{ inputs.private-repo }}
+        run: |
+          dotnet nuget push "./artifacts/*.nupkg" \
+          --source source ${{ vars.AZURE_ARTIFACTS_FEED_URL }} \
+          --api-key AzureDevOps
 
       - name: Update release with renamed packages
         uses: ncipollo/release-action@v1
