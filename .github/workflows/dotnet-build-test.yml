@@ -44,9 +44,9 @@ jobs:
           -u DevExpress \
           -p ${{ secrets.DEVEXPRESS_NUGET_TOKEN }} \
           --store-password-in-clear-text
-          dotnet nuget add source ${{ env.AZURE_ARTIFACTS_FEED_URL }} \
+          dotnet nuget add source ${{ vars.AZURE_ARTIFACTS_FEED_URL }} \
           -n ww \
-          -u ${{ env.AZURE_ARTIFACTS_FEED_USER }} \
+          -u ${{ vars.AZURE_ARTIFACTS_FEED_USER }} \
           -p ${{ secrets.AZURE_DEVOPS_TOKEN }} \
           --store-password-in-clear-text
 
