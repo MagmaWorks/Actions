@@ -46,8 +46,6 @@ jobs:
     needs: build-test
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     uses: MagmaWorks/Actions/.github/workflows/dotnet-pack-release.yml@main
-    with:
-      dotnet: ${{ inputs.dotnet }}
 
   push-nuget:
     if: github.event_name == 'release'
