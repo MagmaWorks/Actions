@@ -5,12 +5,13 @@ on:
     inputs:
       coverage-name:
         type: string
-        required: false
         default: coverage
       coverage-dir:
         type: string
-        required: false
         default: coverage
+      is-private-repo:
+        type: boolean
+        default: false
 
 jobs:
   Codecov:
@@ -25,16 +26,38 @@ jobs:
           name: ${{ inputs.coverage-name }}
           path: ${{ inputs.coverage-dir }}
 
-      - name: Upload to codecov.io (with input commit)
+      - name: Upload to codecov.io
+        if: ${{ !inputs.is-private-repo }} 
         uses: codecov/codecov-action@v5
         with:
           directory: ${{ inputs.coverage-dir }}
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Upload to codecov.io
-        uses: codecov/codecov-action@v5
+      - name: Join Coverage Reports
+        if: ${{ inputs.is-private-repo }} 
+        uses: danielpalme/ReportGenerator-GitHub-Action@5.3.9
         with:
-          directory: ${{ inputs.coverage-dir }}
-          fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
+          reports: coverage/*/coverage.cobertura.xml
+          targetdir: CodeCoverage
+          reporttypes: Cobertura;MarkdownSummaryGithub
+
+      - name: Create Coverage Summary Report
+        if: ${{ inputs.is-private-repo }} 
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: 'CodeCoverage/cobertura.xml'
+          badge: true
+          format: 'markdown'
+          output: 'both'
+
+      - name: Add Coverage PR Comment
+        if: ${{ inputs.is-private-repo }} 
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          recreate: true
+          path: code-coverage-results.md
+      
+      - name: Write to Job Summary
+        if: ${{ inputs.is-private-repo }} 
+        run: cat CodeCoverage/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
