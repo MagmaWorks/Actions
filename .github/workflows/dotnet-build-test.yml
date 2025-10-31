@@ -13,16 +13,8 @@ on:
         description: 'Filter expression for dotnet test (e.g., "Category!=Integration)")'
         type: string
         default: ''
-      azure-artifacts-feed-url:
-        description: 'URL for private Azure artifacts NuGet feed'
-        type: string
-        default: ''
       azure-artifacts-feed-user:
         description: 'User name for private Azure artifacts NuGet feed'
-        type: string
-        default: ''
-      devexpress-artifacts-feed-url:
-        description: 'URL for private DevExpress artifacts NuGet feed'
         type: string
         default: ''
 
@@ -45,6 +37,20 @@ jobs:
         with:
           dotnet-version: ${{ inputs.dotnet }}
 
+      - name: Add private NuGet feeds
+        if: ${{ inputs.azure-artifacts-feed-user != '' }}
+        run: |
+          dotnet nuget add source https://nuget.devexpress.com/${{ secrets.DEVEXPRESS_NUGET_FEED }}/api/v3/index.json \
+          -n devexpress \
+          -u DevExpress \
+          -p ${{ secrets.DEVEXPRESS_NUGET_TOKEN }} \
+          --store-password-in-clear-text
+          dotnet nuget add source ${{ env.AZURE_ARTIFACTS_FEED_URL }} \
+          -n ww \
+          -u ${{ inputs.azure-artifacts-feed-user }} \
+          -p ${{ secrets.AZURE_DEVOPS_TOKEN }} \
+          --store-password-in-clear-text
+
       - name: Run Lint
         if: github.event_name == 'pull_request' && inputs.lint == true
         id: lint-check
@@ -57,13 +63,6 @@ jobs:
 
       - name: Build solution
         run: dotnet build --configuration Release
-
-      - name: Package
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        run: |
-          dotnet pack --no-build --no-restore \
-            -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg \
-            /p:DebugType=portable /property:Configuration=Release
 
       - name: Test projects
         run: |
@@ -82,6 +81,13 @@ jobs:
           name: coverage
           path: coverage
 
+      - name: Package
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: |
+          dotnet pack --no-build --no-restore \
+            -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg \
+            /p:DebugType=portable /property:Configuration=Release
+        
       - name: Upload package artifact
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         uses: actions/upload-artifact@v4
