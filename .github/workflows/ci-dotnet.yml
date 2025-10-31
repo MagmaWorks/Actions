@@ -50,3 +50,5 @@ jobs:
     if: ${{ github.event_name == 'release' && !private }}
     uses: MagmaWorks/Actions/.github/workflows/release-push-nuget.yml@main
     secrets: inherit
+    with:
+      private-repo: ${{ inputs.private }}
