@@ -39,6 +39,8 @@ jobs:
     needs: build-test
     if: ${{ inputs.codecov == true && github.event_name != 'release' }}
     uses: MagmaWorks/Actions/.github/workflows/codecov-upload.yml@main
+    with:
+      is-private-repo: ${{ inputs.azure-artifacts-feed-user == '' }}
       
   pack:
     needs: build-test
