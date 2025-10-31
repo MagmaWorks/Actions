@@ -3,10 +3,6 @@ name: Package and create draft release .NET
 on:
   workflow_call:
     inputs:
-      dotnet:
-        description: "Setup a specific dotnet version"
-        type: string
-        required: false
       package-name:
         type: string
         required: false
