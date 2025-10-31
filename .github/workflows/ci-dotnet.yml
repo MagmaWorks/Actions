@@ -47,6 +47,6 @@ jobs:
     uses: MagmaWorks/Actions/.github/workflows/dotnet-pack-release.yml@main
 
   push-nuget:
-    if: github.event_name == 'release'
+    if: ${{ github.event_name == 'release' && !private }}
     uses: MagmaWorks/Actions/.github/workflows/release-push-nuget.yml@main
     secrets: inherit
