@@ -39,7 +39,7 @@ jobs:
     if: ${{ inputs.codecov == true && github.event_name != 'release' }}
     uses: MagmaWorks/Actions/.github/workflows/codecov-upload.yml@main
     with:
-      is-private-repo: ${{ inputs.private-repo }}
+      private-repo: ${{ inputs.private-repo }}
       
   pack:
     needs: build-test
