@@ -38,6 +38,7 @@ jobs:
     needs: build-test
     if: ${{ inputs.codecov == true && github.event_name != 'release' }}
     uses: vivid-orange/Actions/.github/workflows/codecov-upload.yml@main
+    secrets: inherit
     with:
       private-repo: ${{ inputs.private }}
       
