@@ -17,7 +17,7 @@ The **CI Dispatcher** is an easy-to-use, automated CI tool designed to run GitHu
 - **Build** validation on pull requests — prevents merging broken code.
 - **Linting** for consistent code style enforcement - optionally.
 - **Unit Testing** with coverage tracking:
-- **Coverage reports** automatically uploaded to [codecov.io](https://app.codecov.io/gh/MagmaWorks) (public) or as a PR comment (for private repos).
+- **Coverage reports** automatically uploaded to [codecov.io](https://app.codecov.io/gh/vivid-orange) (public) or as a PR comment (for private repos).
 - **Package** libraries automatically and **draft release** creation with **semantic versioning** on merge to `main`.
 - **Version tagging** and **NuGet publishing** on release  .
 - **Private feed support** — seamlessly restore private NuGet package references from DevExpress and Azure Artifacts.
@@ -75,7 +75,7 @@ on:
 
 jobs:
   ci:
-    uses: MagmaWorks/Actions/.github/workflows/ci-dotnet.yml@main
+    uses: vivid-orange/Actions/.github/workflows/ci-dotnet.yml@main
     secrets: inherit
 ```
 
@@ -90,11 +90,11 @@ You can override default behaviour directly in the job call:
 ```yaml
 jobs:
   ci:
-    uses: MagmaWorks/Actions/.github/workflows/ci-dotnet.yml@main
+    uses: vivid-orange/Actions/.github/workflows/ci-dotnet.yml@main
     secrets: inherit
 jobs:
   ci:
-    uses: MagmaWorks/Actions/.github/workflows/ci-dotnet.yml@main
+    uses: vivid-orange/Actions/.github/workflows/ci-dotnet.yml@main
     secrets: inherit
     with:
       dotnet: '8.0.x'                        # Optional .NET version
@@ -112,9 +112,9 @@ All logic runs through `ci-dotnet.yml`, which dispatches to specialised workflow
 ci-dotnet.yml
 | Event                 | Workflow                                                                                                               | Description                                      |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `pull_request`        | [`dotnet-build-test.yml`](https://github.com/MagmaWorks/Actions/blob/main/.github/workflows/dotnet-build-test.yml)     | Lints, builds, tests, and uploads coverage       |
-| `push` (merge to main)         | [`dotnet-pack-release.yml`](https://github.com/MagmaWorks/Actions/blob/main/.github/workflows/dotnet-pack-release.yml) | Packages the project and creates a draft release |
-| `release` (published) | [`release-push-nuget.yml`](https://github.com/MagmaWorks/Actions/blob/main/.github/workflows/release-push-nuget.yml)   | Republishes release assets to NuGet.org          |
+| `pull_request`        | [`dotnet-build-test.yml`](https://github.com/vivid-orange/Actions/blob/main/.github/workflows/dotnet-build-test.yml)     | Lints, builds, tests, and uploads coverage       |
+| `push` (merge to main)         | [`dotnet-pack-release.yml`](https://github.com/vivid-orange/Actions/blob/main/.github/workflows/dotnet-pack-release.yml) | Packages the project and creates a draft release |
+| `release` (published) | [`release-push-nuget.yml`](https://github.com/vivid-orange/Actions/blob/main/.github/workflows/release-push-nuget.yml)   | Republishes release assets to NuGet.org          |
 
 
 ### dotnet-build-test.yml
