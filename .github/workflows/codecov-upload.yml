@@ -12,6 +12,9 @@ on:
       private-repo:
         type: boolean
         default: false
+    secrets:
+      CODECOV_TOKEN:
+        required: false
 
 jobs:
   Codecov:
