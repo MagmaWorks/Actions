@@ -26,7 +26,7 @@ on:
 jobs:
   build-test:
     if: github.event_name != 'release'
-    uses: MagmaWorks/Actions/.github/workflows/dotnet-build-test.yml@main
+    uses: vivid-orange/Actions/.github/workflows/dotnet-build-test.yml@main
     secrets: inherit
     with:
       lint: ${{ inputs.lint }}
@@ -37,18 +37,18 @@ jobs:
   codecov-upload:
     needs: build-test
     if: ${{ inputs.codecov == true && github.event_name != 'release' }}
-    uses: MagmaWorks/Actions/.github/workflows/codecov-upload.yml@main
+    uses: vivid-orange/Actions/.github/workflows/codecov-upload.yml@main
     with:
       private-repo: ${{ inputs.private }}
       
   pack:
     needs: build-test
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    uses: MagmaWorks/Actions/.github/workflows/dotnet-pack-release.yml@main
+    uses: vivid-orange/Actions/.github/workflows/dotnet-pack-release.yml@main
 
   push-nuget:
     if: github.event_name == 'release'
-    uses: MagmaWorks/Actions/.github/workflows/release-push-nuget.yml@main
+    uses: vivid-orange/Actions/.github/workflows/release-push-nuget.yml@main
     secrets: inherit
     with:
       private-repo: ${{ inputs.private }}
