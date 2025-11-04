@@ -37,176 +37,198 @@ jobs:
         env:
           GITHUB_PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
-          Write-Host "Searching for NuGet packages in ./artifacts..."
+          # -------------------------
+          # Package Version Repack Script
+          # -------------------------
+          # Purpose:
+          # - Strip build/fourth number from package versions (major.minor.patch only)
+          # - Optionally append '-beta' for pre-release
+          # - Update internal package dependencies
+          # - Repack .nupkg/.snupkg files
+          # - Git tag the canonical version and prerelease if applicable
+          # -------------------------
+          
+          Write-Host "[Info] Searching for NuGet packages in ./artifacts..."
           $artifacts = Get-ChildItem -Path ./artifacts -File | Where-Object { $_.Extension -in '.nupkg', '.snupkg' }
-      
+          
           if (-not $artifacts -or $artifacts.Count -eq 0) {
-              Write-Error "No .nupkg or .snupkg files found in ./artifacts"
+              Write-Error "[Error] No .nupkg or .snupkg files found in ./artifacts"
               exit 1
           }
-      
-          # suffix if prerelease (add exactly '-beta' or empty)
-          $suffix = if ($env:GITHUB_PRERELEASE -eq 'true') { '-beta' } else { '' }
+          
+          # Determine prerelease suffix
+          $prereleaseSuffix = if ($env:GITHUB_PRERELEASE -eq 'true') { '-beta' } else { '' }
+          Write-Host "[Info] Pre-release flag: $($env:GITHUB_PRERELEASE)"
+          Write-Host "[Info] Version suffix: '$prereleaseSuffix'"
+          
           $newTag = $null
-      
-          Write-Host "Pre-release flag: $($env:GITHUB_PRERELEASE)"
-          Write-Host "Version suffix: '$suffix'"
-      
+          
           foreach ($pkg in $artifacts) {
-              Write-Host "`n--- Processing: $($pkg.Name) ---"
-      
+              Write-Host "`n[Package] Processing: $($pkg.Name)"
+          
               # Match filenames like:
               #   Org.Package.Name.0.1.6.3.nupkg
               #   Org.Package.Name.1.2.3.nupkg
               #   Org.Package.Name.1.2.3-preview.4.nupkg
               #   Org.Package.Name.1.2.3-beta.nupkg
-              if ($pkg.Name -notmatch '^(?<prefix>.+?)\.(?<fullver>\d+\.\d+\.\d+(?:\.\d+)?(?:-[^.]*)?)\.(?<ext>snupkg|nupkg)$') {
-                  Write-Warning "Skipping file (pattern mismatch): $($pkg.Name)"
+              if ($pkg.Name -notmatch '^(?<prefix>.+?)\.(?<fullVersion>\d+\.\d+\.\d+(?:\.\d+)?(?:-[^.]*)?)\.(?<ext>snupkg|nupkg)$') {
+                  Write-Warning "[Warning] Skipping file (pattern mismatch): $($pkg.Name)"
                   continue
               }
-      
-              $prefix      = $matches['prefix']
-              $fullVersion = $matches['fullver']
-              $ext         = ".$($matches['ext'])"
-      
-              # Extract major.minor.patch only
-              if ($fullVersion -match '^(?:\d+\.)?(?<clean>\d+\.\d+\.\d+)') {
-                  $majorMinorPatch = $matches['clean']
+          
+              $pkgPrefix    = $matches['prefix']
+              $fullVersion  = $matches['fullVersion']
+              $pkgExtension = ".$($matches['ext'])"
+          
+              # Extract major.minor.patch (strip build number and prerelease suffix)
+              if ($fullVersion -match '^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)') {
+                  $baseVersion = "$($matches['major']).$($matches['minor']).$($matches['patch'])"
               } else {
-                  Write-Warning "Could not extract base version from $fullVersion"
+                  Write-Warning "[Warning] Could not extract base version from $fullVersion"
                   continue
               }
-      
-              # Package id: everything before the numeric version
-              $pkgId = $prefix.TrimEnd('.')
-              $newVersion = "$majorMinorPatch$suffix"
-              $outName = "$pkgId.$newVersion$ext"
-              $dest = Join-Path $pkg.DirectoryName $outName
-      
+          
+              # Compose new version with optional prerelease suffix
+              $newVersion   = "$baseVersion$prereleaseSuffix"
+              $pkgId        = $pkgPrefix.TrimEnd('.')
+              $newFileName  = "$pkgId.$newVersion$pkgExtension"
+              $destPath     = Join-Path $pkg.DirectoryName $newFileName
+          
               if (-not $newTag) { $newTag = $newVersion }
-      
-              Write-Host "Package id: $pkgId"
-              Write-Host "New version for this package: $newVersion"
-              Write-Host "Will write filename: $outName"
-      
-              # create unique work dir for this package
-              $work = Join-Path $pkg.DirectoryName ("work_" + [System.Guid]::NewGuid().ToString("N"))
-              if (Test-Path $work) { Remove-Item $work -Recurse -Force }
-              New-Item -ItemType Directory -Path $work | Out-Null
-      
-              # Expand the package into work dir
-              Expand-Archive -Path $pkg.FullName -DestinationPath $work -Force
-      
-              # find nuspec inside
-              $nuspec = Get-ChildItem $work -Filter *.nuspec | Select-Object -First 1
-              if (-not $nuspec) {
-                  Write-Warning "No nuspec file found inside $($pkg.Name). Cleaning up and skipping."
-                  Remove-Item $work -Recurse -Force
+          
+              Write-Host "[Package] ID: $pkgId"
+              Write-Host "[Package] New version: $newVersion"
+              Write-Host "[Package] Output filename: $newFileName"
+          
+              # -------------------------
+              # Expand package
+              # -------------------------
+              $workDir = Join-Path $pkg.DirectoryName ("work_" + [System.Guid]::NewGuid().ToString("N"))
+              if (Test-Path $workDir) { Remove-Item $workDir -Recurse -Force }
+              New-Item -ItemType Directory -Path $workDir | Out-Null
+          
+              Write-Host "[Package] Expanding package to temporary folder..."
+              Expand-Archive -Path $pkg.FullName -DestinationPath $workDir -Force
+          
+              $nuspecFile = Get-ChildItem $workDir -Filter *.nuspec | Select-Object -First 1
+              if (-not $nuspecFile) {
+                  Write-Warning "[Warning] No nuspec found in $($pkg.Name). Skipping."
+                  Remove-Item $workDir -Recurse -Force
                   continue
               }
-      
-              # Update this package's version
-              [xml]$xml = Get-Content $nuspec.FullName
-              $oldVersion = $xml.package.metadata.version
-              $xml.package.metadata.version = $newVersion
-              Write-Host "Updated own version: $oldVersion -> $newVersion"
-              $xml.Save($nuspec.FullName)
-      
-              # Recreate repacked package with final name
-              if (Test-Path $dest) { Remove-Item $dest -Force }
-              Compress-Archive -Path (Join-Path $work '*') -DestinationPath $dest -Force
-      
-              # Clean up original package and temp work
+          
+              # -------------------------
+              # Update package version
+              # -------------------------
+              [xml]$nuspecXml = Get-Content $nuspecFile.FullName
+              $oldVersion = $nuspecXml.package.metadata.version
+              $nuspecXml.package.metadata.version = $newVersion
+              Write-Host "[Package] Updated version: $oldVersion -> $newVersion"
+              $nuspecXml.Save($nuspecFile.FullName)
+          
+              # -------------------------
+              # Repack package
+              # -------------------------
+              if (Test-Path $destPath) { Remove-Item $destPath -Force }
+              Compress-Archive -Path (Join-Path $workDir '*') -DestinationPath $destPath -Force
+          
+              # Cleanup
               Remove-Item $pkg.FullName -Force
-              Remove-Item $work -Recurse -Force
-      
-              Write-Host "Repacked: $outName"
-      
+              Remove-Item $workDir -Recurse -Force
+          
+              Write-Host "[Package] Repacked: $newFileName"
+          
               # -------------------------
-              # Update dependencies in all other packages that reference this package id
+              # Update dependencies in other packages
               # -------------------------
-              $others = Get-ChildItem -Path ./artifacts -File | Where-Object { $_.Extension -in '.nupkg', '.snupkg' }
-              foreach ($other in $others) {
-                  if ($other.Name -eq $outName) { continue }
-      
-                  Write-Host "  Checking other package: $($other.Name) for dependency on $pkgId"
-      
-                  $otherWork = Join-Path $other.DirectoryName ("work_" + [System.Guid]::NewGuid().ToString("N"))
-                  if (Test-Path $otherWork) { Remove-Item $otherWork -Recurse -Force }
-                  New-Item -ItemType Directory -Path $otherWork | Out-Null
-      
-                  Expand-Archive -Path $other.FullName -DestinationPath $otherWork -Force
-      
-                  $otherNuspec = Get-ChildItem $otherWork -Filter *.nuspec | Select-Object -First 1
+              $otherPackages = Get-ChildItem -Path ./artifacts -File | Where-Object { $_.Extension -in '.nupkg', '.snupkg' }
+          
+              foreach ($other in $otherPackages) {
+                  if ($other.Name -eq $newFileName) { continue }
+          
+                  Write-Host "[Dependency] Checking dependencies in $($other.Name)..."
+          
+                  $otherWorkDir = Join-Path $other.DirectoryName ("work_" + [System.Guid]::NewGuid().ToString("N"))
+                  if (Test-Path $otherWorkDir) { Remove-Item $otherWorkDir -Recurse -Force }
+                  New-Item -ItemType Directory -Path $otherWorkDir | Out-Null
+          
+                  Expand-Archive -Path $other.FullName -DestinationPath $otherWorkDir -Force
+                  $otherNuspec = Get-ChildItem $otherWorkDir -Filter *.nuspec | Select-Object -First 1
+          
                   if (-not $otherNuspec) {
-                      Compress-Archive -Path (Join-Path $otherWork '*') -DestinationPath $other.FullName -Force
-                      Remove-Item $otherWork -Recurse -Force
+                      Compress-Archive -Path (Join-Path $otherWorkDir '*') -DestinationPath $other.FullName -Force
+                      Remove-Item $otherWorkDir -Recurse -Force
                       continue
                   }
-      
-                  [xml]$oXml = Get-Content $otherNuspec.FullName
+          
+                  [xml]$otherXml = Get-Content $otherNuspec.FullName
                   $changed = $false
-      
-                  if ($oXml.package.metadata.dependencies -ne $null) {
+          
+                  if ($otherXml.package.metadata.dependencies -ne $null) {
+                      # Handle grouped dependencies
                       $groups = @()
-                      try { $groups = @($oXml.package.metadata.dependencies.group) } catch {}
+                      try { $groups = @($otherXml.package.metadata.dependencies.group) } catch {}
                       foreach ($group in $groups) {
                           foreach ($dep in @($group.dependency)) {
                               if ($null -eq $dep -or -not $dep.id) { continue }
                               if ($dep.id -eq $pkgId) {
                                   $dep.version = $newVersion
                                   $changed = $true
-                                  Write-Host "    Updated dependency ($($group.targetFramework)) in $($other.Name): $($dep.id)"
+                                  Write-Host "[Dependency] Updated group dependency ($($group.targetFramework)): $($dep.id)"
                               }
                           }
                       }
-      
+          
+                      # Handle top-level dependencies
                       $topDeps = @()
-                      try { $topDeps = @($oXml.package.metadata.dependencies.dependency) } catch {}
+                      try { $topDeps = @($otherXml.package.metadata.dependencies.dependency) } catch {}
                       foreach ($dep in $topDeps) {
                           if ($null -eq $dep -or -not $dep.id) { continue }
                           if ($dep.id -eq $pkgId) {
                               $dep.version = $newVersion
                               $changed = $true
-                              Write-Host "    Updated top-level dependency in $($other.Name): $($dep.id)"
+                              Write-Host "[Dependency] Updated top-level dependency: $($dep.id)"
                           }
                       }
                   }
-      
-                  if ($changed) {
-                      $oXml.Save($otherNuspec.FullName)
-                  }
-      
-                  # Repack the other package (changed or not)
+          
+                  if ($changed) { $otherXml.Save($otherNuspec.FullName) }
+          
+                  # Repack other package
                   if (Test-Path $other.FullName) { Remove-Item $other.FullName -Force }
-                  Compress-Archive -Path (Join-Path $otherWork '*') -DestinationPath $other.FullName -Force
-                  Remove-Item $otherWork -Recurse -Force
+                  Compress-Archive -Path (Join-Path $otherWorkDir '*') -DestinationPath $other.FullName -Force
+                  Remove-Item $otherWorkDir -Recurse -Force
               }
           }
-      
+          
           if (-not $newTag) {
-              Write-Error "Could not determine version tag"
+              Write-Error "[Error] Could not determine version tag"
               exit 1
           }
-      
+          
+          # -------------------------
+          # Output version for GitHub Actions
+          # -------------------------
           "VERSION_TAG=$newTag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-      
-          Write-Host "`nAll packages repacked successfully."
-          Write-Host "Version tag: $newTag"
-      
-          # Git tagging: always tag canonical base; if prerelease also tag '-beta'
-          Write-Host "Tagging commit with $newTag and base version"
+          Write-Host "[Info] All packages repacked successfully."
+          Write-Host "[Info] Version tag: $newTag"
+          
+          # -------------------------
+          # Git tagging
+          # -------------------------
+          Write-Host "[Git] Tagging commit with $newTag..."
           git tag $newTag
-      
-          if ($suffix -ne '') {
-              if ($newTag -match '^(?<clean>\d+\.\d+\.\d+)') {
-                  $baseTag = $matches['clean']
-                  Write-Host "Also tagging base version: $baseTag"
+          
+          if ($prereleaseSuffix -ne '') {
+              if ($newTag -match '^(?<baseVersion>\d+\.\d+\.\d+)') {
+                  $baseTag = $matches['baseVersion']
+                  Write-Host "[Git] Also tagging base version: $baseTag"
                   git tag $baseTag
               }
           }
-      
+          
           git push origin --tags
+          Write-Host "[Git] Tags pushed successfully."
 
       - name: Push to NuGet.org
         if: ${{ !inputs.private-repo }}
