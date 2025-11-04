@@ -52,27 +52,38 @@ jobs:
           Write-Host "Pre-release flag: $($env:GITHUB_PRERELEASE)"
           Write-Host "Version suffix: '$suffix'"
           
-          # We'll process each package and immediately update ALL other packages' nuspec dependencies
           foreach ($pkg in $artifacts) {
               Write-Host "`n--- Processing: $($pkg.Name) ---"
           
-              # capture: prefix, clean version (3-part), and extension (.nupkg or .snupkg)
-              if ($pkg.Name -notmatch '^(?<prefix>.*)\.(?<version>\d+\.\d+\.\d+)(?:-[^\.]+)?(?:\.\d+)?(?<ext>\.(?:nupkg|snupkg))$') {
+              # Match filenames like:
+              #   Org.Package.Name.1.2.3.nupkg
+              #   Org.Package.Name.1.2.3.1.nupkg
+              #   Org.Package.Name.1.2.3-preview.4.nupkg
+              #   Org.Package.Name.1.2.3-beta.nupkg
+              # Works with any number of '.' in the prefix.
+              if ($pkg.Name -notmatch '^(?<prefix>.*)\.(?<fullver>\d+\.\d+\.\d+(?:[^\d].*|\.\d+)?)\.(?<ext>snupkg|nupkg)$') {
                   Write-Warning "Skipping file (pattern mismatch): $($pkg.Name)"
                   continue
               }
-              
-              $prefix      = $matches['prefix']     # e.g. VividOrange.Taxonomy.Sections.SectionProperties.SteelProperties
-              $baseVersion = $matches['version']    # e.g. 1.2.3
-              $ext         = $matches['ext']        # .nupkg / .snupkg
           
-              # set the canonical tag (first found version)
-              if (-not $newTag) { $newTag = "$baseVersion$suffix" }
+              $prefix      = $matches['prefix']
+              $fullVersion = $matches['fullver']
+              $ext         = ".$($matches['ext'])"
           
-              $pkgId = $prefix.TrimEnd('.')     # e.g. Org.Package
-              $newVersion = "$baseVersion$suffix"
-              $outName = "$prefix.$baseVersion$suffix$ext"
+              # Extract only major.minor.patch
+              if ($fullVersion -match '^(?<clean>\d+\.\d+\.\d+)') {
+                  $majorMinorPatch = $matches['clean']
+              } else {
+                  Write-Warning "Could not extract base version from $fullVersion"
+                  continue
+              }
+          
+              $pkgId = $prefix.TrimEnd('.')     # e.g. VividOrange.Taxonomy.Sections.SectionProperties.SteelProperties
+              $newVersion = "$majorMinorPatch$suffix"
+              $outName = "$prefix.$newVersion$ext"
               $dest = Join-Path $pkg.DirectoryName $outName
+          
+              if (-not $newTag) { $newTag = $newVersion }
           
               Write-Host "Package id: $pkgId"
               Write-Host "New version for this package: $newVersion"
@@ -199,16 +210,14 @@ jobs:
           git tag $newTag
           
           if ($suffix -ne '') {
-              if ($baseVersion -match '^\d+\.\d+\.\d+$') {
-                  # tag base version without suffix too, e.g. 1.2.3
-                  $baseTag = $baseVersion
+              if ($newTag -match '^(?<clean>\d+\.\d+\.\d+)-') {
+                  $baseTag = $matches['clean']
                   Write-Host "Also tagging base version: $baseTag"
                   git tag $baseTag
               }
           }
           
           git push origin --tags
-
 
       - name: Push to NuGet.org
         if: ${{ !inputs.private-repo }}
@@ -230,7 +239,7 @@ jobs:
           tag: "${{ steps.rename.outputs.VERSION_TAG }}"
           artifacts: "./artifacts/*.*"
           draft: false
-          makeLatest: ${{ !github.event.release.prerelease }}
+          makeLatest: true
           allowUpdates: true
           removeArtifacts: true
           updateOnlyUnreleased: false
