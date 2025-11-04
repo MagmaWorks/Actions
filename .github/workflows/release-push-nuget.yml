@@ -61,7 +61,7 @@ jobs:
               }
           
               $prefix = $matches[1]                    # e.g. VividOrange.Geometry.
-              $majorMinorPatch = $matches[2]           # e.g. 0.1.3
+              $majorMinorPatch = $matches[2]           # e.g. 0.1.4
               $ext = $matches[3]                       # .nupkg / .snupkg
               if (-not $newTag) { $newTag = "$majorMinorPatch$suffix" }
           
@@ -123,24 +123,30 @@ jobs:
           
                   [xml]$oXml = Get-Content $otherNuspec.FullName
                   $changed = $false
-                  $deps = @()
-                  if ($oXml.package.metadata.dependencies -ne $null) {
-                      $deps = @($oXml.package.metadata.dependencies.dependency)
-                  }
           
-                  foreach ($dep in $deps) {
-                      if ($null -eq $dep -or -not $dep.id) { continue }
-                      if ($dep.id -eq $pkgName) {
-                          $oldDepVersion = $dep.version
-                          $dep.version = $newVersion
-                          $changed = $true
-                          Write-Host "    Updated dependency in $($otherPkg.Name): $($dep.id) $oldDepVersion -> $($dep.version)"
+                  if ($oXml.package.metadata.dependencies -ne $null) {
+                      # --- ✅ NEW: handle per-framework groups ---
+                      foreach ($group in $oXml.package.metadata.dependencies.group) {
+                          foreach ($dep in $group.dependency) {
+                              if ($dep.id -eq $pkgName) {
+                                  Write-Host "    Updated dependency ($($group.targetFramework)) in $($otherPkg.Name): $($dep.id) $($dep.version) -> $newVersion"
+                                  $dep.version = $newVersion
+                                  $changed = $true
+                              }
+                          }
+                      }
+          
+                      # --- ✅ still handle top-level deps (rare but possible) ---
+                      foreach ($dep in $oXml.package.metadata.dependencies.dependency) {
+                          if ($dep.id -eq $pkgName) {
+                              Write-Host "    Updated top-level dependency in $($otherPkg.Name): $($dep.id) $($dep.version) -> $newVersion"
+                              $dep.version = $newVersion
+                              $changed = $true
+                          }
                       }
                   }
           
-                  if ($changed) {
-                      $oXml.Save($otherNuspec.FullName)
-                  }
+                  if ($changed) { $oXml.Save($otherNuspec.FullName) }
           
                   Compress-Archive -Path (Join-Path $otherWork '*') -DestinationPath $otherPkg.FullName -Force
                   Remove-Item $otherWork -Recurse -Force
