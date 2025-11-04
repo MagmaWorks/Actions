@@ -57,21 +57,21 @@ jobs:
               Write-Host "`n--- Processing: $($pkg.Name) ---"
           
               # capture: prefix, clean version (3-part), and extension (.nupkg or .snupkg)
-              if ($pkg.Name -notmatch '^(.*?)(\d+\.\d+\.\d+)(?:-[^\.]+)?(?:\.\d+)?(\.(?:nupkg|snupkg))$') {
+              if ($pkg.Name -notmatch '^(?<prefix>.*)\.(?<version>\d+\.\d+\.\d+)(?:-[^\.]+)?(?:\.\d+)?(?<ext>\.(?:nupkg|snupkg))$') {
                   Write-Warning "Skipping file (pattern mismatch): $($pkg.Name)"
                   continue
               }
-          
-              $prefix      = $matches[1]        # e.g. Org.Package.
-              $baseVersion = $matches[2]        # e.g. 1.2.3  (clean)
-              $ext         = $matches[3]        # .nupkg or .snupkg
+              
+              $prefix      = $matches['prefix']     # e.g. VividOrange.Taxonomy.Sections.SectionProperties.SteelProperties
+              $baseVersion = $matches['version']    # e.g. 1.2.3
+              $ext         = $matches['ext']        # .nupkg / .snupkg
           
               # set the canonical tag (first found version)
               if (-not $newTag) { $newTag = "$baseVersion$suffix" }
           
               $pkgId = $prefix.TrimEnd('.')     # e.g. Org.Package
               $newVersion = "$baseVersion$suffix"
-              $outName = "$prefix$baseVersion$suffix$ext"
+              $outName = "$prefix.$baseVersion$suffix$ext"
               $dest = Join-Path $pkg.DirectoryName $outName
           
               Write-Host "Package id: $pkgId"
