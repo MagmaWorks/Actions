@@ -43,50 +43,73 @@ jobs:
           $suffix = if ($env:GITHUB_PRERELEASE -eq 'true') { '-beta' } else { '' }
           $newTag = $null
       
+          # Track renamed internal packages
+          $renamedPackages = @{}
+          
           foreach ($pkg in $artifacts) {
             Write-Host "Processing $($pkg.Name)..."
-      
-            # Match name like: <prefix><Major.Minor.Patch>.<Build><ext>
+          
             if ($pkg.Name -notmatch '(.*?)(\d+\.\d+\.\d+)\.\d+(\..*)') {
               Write-Warning "Skipping file (pattern mismatch): $($pkg.Name)"
               continue
             }
-      
-            $prefix = $matches[1]            # e.g., VividOrange.Uncertainties.
-            $majorMinorPatch = $matches[2]   # e.g., 0.0.12
-            $ext = $matches[3]               # .nupkg or .snupkg
-            if (-not $newTag) { $newTag = "$majorMinorPatch$suffix" }
-      
-            # Work folder next to the file
+          
+            $prefix = $matches[1]
+            $majorMinorPatch = $matches[2]
+            $ext = $matches[3]
+            if (-not $newTag) { $newTag = $majorMinorPatch }
+          
+            $packageId = ($prefix.TrimEnd('.')).Split('.')[-1]
+            $pkgName = $prefix.TrimEnd('.')
+            $newVersion = "$majorMinorPatch$suffix"
+          
+            # Store this mapping for dependency fix later
+            $renamedPackages["$pkgName"] = $newVersion
+          
+            # Unpack, edit, rezip
             $work = Join-Path $pkg.DirectoryName ([IO.Path]::GetFileNameWithoutExtension($pkg.Name))
             if (Test-Path $work) { Remove-Item $work -Recurse -Force }
             New-Item -ItemType Directory -Path $work | Out-Null
-      
-            # Unzip -> edit nuspec version -> rezip
+          
             Expand-Archive -Path $pkg.FullName -DestinationPath $work -Force
             Remove-Item $pkg.FullName -Force
-      
+          
             $nuspec = Get-ChildItem $work -Filter *.nuspec | Select-Object -First 1
-            if (-not $nuspec) { Write-Error "No .nuspec inside $($pkg.Name)"; exit 1 }
-      
             [xml]$xml = Get-Content $nuspec.FullName
-            # Replace "-preview.<build>" with either "" (release) or "-beta" (pre-release)
             $xml.package.metadata.version = ($xml.package.metadata.version -replace '-preview\.\d+', $suffix)
-            # Replace any dependency version containing -preview.* with same base version
-            $xml.package.metadata.dependencies.dependency | ForEach-Object {
-                if ($_.version -match '(\d+\.\d+\.\d+)-preview\.\d+') {
-                    $_.version = $matches[1] + $suffix
-                }
-            }
+          
+            # Save now, we'll adjust dependencies later
             $xml.Save($nuspec.FullName)
-      
-            # Recreate the package (keep .nupkg/.snupkg extension and add -beta in filename if needed)
+          
             $outName = "$prefix$majorMinorPatch$($suffix)$ext"
             $dest = Join-Path $pkg.DirectoryName $outName
             if (Test-Path $dest) { Remove-Item $dest -Force }
             Compress-Archive -Path (Join-Path $work '*') -DestinationPath $dest -Force
-      
-            # Clean up
+            Remove-Item $work -Recurse -Force
+          }
+          
+          # Update dependency versions across all renamed packages
+          foreach ($pkgPath in Get-ChildItem ./artifacts -Filter *.nupkg -File) {
+            $work = Join-Path $pkgPath.DirectoryName ([IO.Path]::GetFileNameWithoutExtension($pkgPath.Name))
+            if (Test-Path $work) { Remove-Item $work -Recurse -Force }
+            New-Item -ItemType Directory -Path $work | Out-Null
+            Expand-Archive -Path $pkgPath.FullName -DestinationPath $work -Force
+            Remove-Item $pkgPath.FullName -Force
+          
+            $nuspec = Get-ChildItem $work -Filter *.nuspec | Select-Object -First 1
+            [xml]$xml = Get-Content $nuspec.FullName
+          
+            foreach ($dep in $xml.package.metadata.dependencies.dependency) {
+              $depId = $dep.id
+              if ($renamedPackages.ContainsKey($depId)) {
+                $oldVersion = $dep.version
+                $dep.version = $renamedPackages[$depId]
+                Write-Host "Updated dependency $depId: $oldVersion -> $($dep.version)"
+              }
+            }
+          
+            $xml.Save($nuspec.FullName)
+            Compress-Archive -Path (Join-Path $work '*') -DestinationPath $pkgPath.FullName -Force
             Remove-Item $work -Recurse -Force
           }
       
