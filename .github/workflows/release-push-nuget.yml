@@ -104,7 +104,7 @@ jobs:
               if ($renamedPackages.ContainsKey($depId)) {
                 $oldVersion = $dep.version
                 $dep.version = $renamedPackages[$depId]
-                Write-Host "Updated dependency $depId: $oldVersion -> $($dep.version)"
+                Write-Host ("Updated dependency {0}: {1} -> {2}" -f $depId, $oldVersion, $dep.version)
               }
             }
           
