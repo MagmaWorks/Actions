@@ -52,66 +52,118 @@ jobs:
           Write-Host "Version suffix: '$suffix'"
           
           foreach ($pkg in $artifacts) {
-              Write-Host "`nProcessing: $($pkg.Name)"
+              Write-Host "`n--- Processing: $($pkg.Name) ---"
           
               if ($pkg.Name -notmatch '^(.*?)(\d+\.\d+\.\d+)\.\d+(\..*)$') {
                   Write-Warning "Skipping file (pattern mismatch): $($pkg.Name)"
                   continue
               }
           
-              $prefix = $matches[1]
-              $majorMinorPatch = $matches[2]
-              $ext = $matches[3]
+              $prefix = $matches[1]                    # e.g. VividOrange.Uncertainties.
+              $majorMinorPatch = $matches[2]           # e.g. 0.1.2
+              $ext = $matches[3]                       # .nupkg / .snupkg
               if (-not $newTag) { $newTag = "$majorMinorPatch$suffix" }
           
+              # Full package id (without trailing dot)
+              $pkgName = $prefix.TrimEnd('.')
               $newVersion = "$majorMinorPatch$suffix"
           
+              Write-Host "Package id: $pkgName"
+              Write-Host "New version for this package: $newVersion"
+          
+              # Work folder for this package
               $work = Join-Path $pkg.DirectoryName ([IO.Path]::GetFileNameWithoutExtension($pkg.Name))
               if (Test-Path $work) { Remove-Item $work -Recurse -Force }
               New-Item -ItemType Directory -Path $work | Out-Null
           
+              # Expand the package
               Expand-Archive -Path $pkg.FullName -DestinationPath $work -Force
+          
+              # Remove the original package file (we will recreate it)
               Remove-Item $pkg.FullName -Force
           
+              # Find and update this package's nuspec
               $nuspec = Get-ChildItem $work -Filter *.nuspec | Select-Object -First 1
               if (-not $nuspec) {
-                  Write-Warning "No nuspec file found in $($pkg.Name), skipping"
+                  Write-Warning "No nuspec file found inside $($pkg.Name). Cleaning up and skipping."
                   Remove-Item $work -Recurse -Force
                   continue
               }
           
               [xml]$xml = Get-Content $nuspec.FullName
           
-              # Update own version
+              # Update this package version (replace any -preview.<n>)
               $oldVersion = $xml.package.metadata.version
               $xml.package.metadata.version = $newVersion
-              Write-Host "Updated package version: $oldVersion -> $newVersion"
+              Write-Host "Updated own version: $oldVersion -> $newVersion"
           
-              # Update internal dependencies
-              $deps = @($xml.package.metadata.dependencies.dependency)
-              if ($deps.Count -gt 0) {
-                  foreach ($dep in $deps) {
-                      if ($null -eq $dep -or -not $dep.id) { continue }
-          
-                      if ($dep.id -like "VividOrange.*") {
-                          $oldDepVersion = $dep.version
-                          $dep.version = $newVersion
-                          Write-Host "Updated dependency $($dep.id): $oldDepVersion -> $($dep.version)"
-                      }
-                  }
-              }
-          
+              # Save changes to this package's nuspec now
               $xml.Save($nuspec.FullName)
           
+              # Repack this package with the new name (add suffix in filename if any)
               $outName = "$prefix$majorMinorPatch$suffix$ext"
               $dest = Join-Path $pkg.DirectoryName $outName
               if (Test-Path $dest) { Remove-Item $dest -Force }
-          
               Compress-Archive -Path (Join-Path $work '*') -DestinationPath $dest -Force
               Remove-Item $work -Recurse -Force
           
               Write-Host "Repacked: $outName"
-          }
+          
+              # ------------------------------------------------------------
+              # Update dependencies in all other packages that reference $pkgName
+              # ------------------------------------------------------------
+              foreach ($otherPkg in Get-ChildItem -Path ./artifacts -Filter *.nupkg -File) {
+                  # skip the package we just repacked
+                  if ($otherPkg.Name -eq $outName) { continue }
+          
+                  Write-Host "  Checking other package: $($otherPkg.Name) for dependency on $pkgName"
+          
+                  $otherWork = Join-Path $otherPkg.DirectoryName ([IO.Path]::GetFileNameWithoutExtension($otherPkg.Name))
+                  if (Test-Path $otherWork) { Remove-Item $otherWork -Recurse -Force }
+                  New-Item -ItemType Directory -Path $otherWork | Out-Null
+          
+                  Expand-Archive -Path $otherPkg.FullName -DestinationPath $otherWork -Force
+          
+                  # We'll remove original .nupkg only after successful read (safe to remove now so we can recreate)
+                  Remove-Item $otherPkg.FullName -Force
+          
+                  $otherNuspec = Get-ChildItem $otherWork -Filter *.nuspec | Select-Object -First 1
+                  if (-not $otherNuspec) {
+                      Write-Host "    No nuspec in $($otherPkg.Name); repacking unchanged."
+                      Compress-Archive -Path (Join-Path $otherWork '*') -DestinationPath $otherPkg.FullName -Force
+                      Remove-Item $otherWork -Recurse -Force
+                      continue
+                  }
+          
+                  [xml]$oXml = Get-Content $otherNuspec.FullName
+                  $changed = $false
+          
+                  # Safe enumerate dependencies (handles missing nodes)
+                  $deps = @()
+                  if ($oXml.package.metadata.dependencies -ne $null) {
+                      $deps = @($oXml.package.metadata.dependencies.dependency)
+                  }
+          
+                  foreach ($dep in $deps) {
+                      if ($null -eq $dep -or -not $dep.id) { continue }
+                      if ($dep.id -eq $pkgName) {
+                          $oldDepVersion = $dep.version
+                          $dep.version = $newVersion
+                          $changed = $true
+                          Write-Host "    Updated dependency in $($otherPkg.Name): $($dep.id) $oldDepVersion -> $($dep.version)"
+                      }
+                  }
+          
+                  if ($changed) {
+                      $oXml.Save($otherNuspec.FullName)
+                  }
+          
+                  # Repack the other package (changed or not)
+                  Compress-Archive -Path (Join-Path $otherWork '*') -DestinationPath $otherPkg.FullName -Force
+                  Remove-Item $otherWork -Recurse -Force
+              }
+          
+          } # end foreach main package
           
           if (-not $newTag) {
               Write-Error "Could not determine version tag"
@@ -125,7 +177,6 @@ jobs:
           
           git tag $newTag
           git push origin $newTag
-
 
       - name: Push to NuGet.org
         if: ${{ !inputs.private-repo }}
