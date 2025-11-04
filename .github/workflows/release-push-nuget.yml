@@ -72,6 +72,12 @@ jobs:
             [xml]$xml = Get-Content $nuspec.FullName
             # Replace "-preview.<build>" with either "" (release) or "-beta" (pre-release)
             $xml.package.metadata.version = ($xml.package.metadata.version -replace '-preview\.\d+', $suffix)
+            # Replace any dependency version containing -preview.* with same base version
+            $xml.package.metadata.dependencies.dependency | ForEach-Object {
+                if ($_.version -match '(\d+\.\d+\.\d+)-preview\.\d+') {
+                    $_.version = $matches[1] + $suffix
+                }
+            }
             $xml.Save($nuspec.FullName)
       
             # Recreate the package (keep .nupkg/.snupkg extension and add -beta in filename if needed)
