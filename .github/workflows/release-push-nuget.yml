@@ -55,7 +55,7 @@ jobs:
             $prefix = $matches[1]            # e.g., VividOrange.Uncertainties.
             $majorMinorPatch = $matches[2]   # e.g., 0.0.12
             $ext = $matches[3]               # .nupkg or .snupkg
-            if (-not $newTag) { $newTag = $majorMinorPatch }
+            if (-not $newTag) { $newTag = "$majorMinorPatch$suffix" }
       
             # Work folder next to the file
             $work = Join-Path $pkg.DirectoryName ([IO.Path]::GetFileNameWithoutExtension($pkg.Name))
@@ -113,7 +113,7 @@ jobs:
           tag: "${{ github.event.release.tag_name }}"
           artifacts: "./artifacts/*.*"
           draft: false
-          makeLatest: true
+          makeLatest: ${{ github.event.release.prerelease == false }}
           allowUpdates: true
           removeArtifacts: true
           updateOnlyUnreleased: false
