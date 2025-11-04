@@ -54,7 +54,7 @@ jobs:
           foreach ($pkg in $artifacts) {
               Write-Host "`n--- Processing: $($pkg.Name) ---"
           
-              if ($pkg.Name -notmatch '^(.*?)(\d+\.\d+\.\d+)\.\d+(\..*)$') {
+              if ($pkg.Name -notmatch '^(.*?)(\d+\.\d+\.\d+(?:-[A-Za-z0-9\.]+)?)(\..*)$') {
                   Write-Warning "Skipping file (pattern mismatch): $($pkg.Name)"
                   continue
               }
