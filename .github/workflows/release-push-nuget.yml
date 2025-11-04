@@ -175,8 +175,19 @@ jobs:
           Write-Host "`nAll packages repacked successfully."
           Write-Host "Version tag: $newTag"
           
+          # Git tagging
+          Write-Host "Tagging commit with $newTag and base version"
+          
+          # Always tag both: base and prerelease (if applicable)
           git tag $newTag
-          git push origin $newTag
+          
+          if ($newTag -match '^(?<base>\d+\.\d+\.\d+)-') {
+              $baseTag = $matches['base']
+              Write-Host "Also tagging base version: $baseTag"
+              git tag $baseTag
+          }
+          
+          git push origin --tags
 
       - name: Push to NuGet.org
         if: ${{ !inputs.private-repo }}
