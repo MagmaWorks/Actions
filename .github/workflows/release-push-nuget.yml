@@ -52,7 +52,7 @@ jobs:
               continue
             }
       
-            $prefix = $matches[1]            # e.g., MagmaWorks.Uncertainties.
+            $prefix = $matches[1]            # e.g., VividOrange.Uncertainties.
             $majorMinorPatch = $matches[2]   # e.g., 0.0.12
             $ext = $matches[3]               # .nupkg or .snupkg
             if (-not $newTag) { $newTag = $majorMinorPatch }
