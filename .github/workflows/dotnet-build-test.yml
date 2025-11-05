@@ -85,7 +85,8 @@ jobs:
         run: |
           dotnet pack --no-build --no-restore \
             -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg \
-            /p:DebugType=portable /property:Configuration=Release
+            /p:DebugType=portable /property:Configuration=Release \
+            /p:Authors="Vivid Orange" /p:Owners="Vivid Orange" \
         
       - name: Upload package artifact
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
