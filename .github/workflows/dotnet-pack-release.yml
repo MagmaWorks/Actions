@@ -14,7 +14,7 @@ on:
 
 jobs:
   package:
-    name: Package
+    name: Draft Release
     runs-on: ubuntu-latest
     outputs:
       version-tag: ${{ steps.get_version.outputs.VERSION_TAG }}
