@@ -124,6 +124,10 @@ jobs:
               $oldVersion = $nuspecXml.package.metadata.version
               $nuspecXml.package.metadata.version = $newVersion
               Write-Host "[Package] Updated version: $oldVersion -> $newVersion"
+
+              # Set authors/owners consistently
+              $nuspecXml.package.metadata.authors = "Vivid orange"
+              $nuspecXml.package.metadata.owners  = "Vivid orange"
               $nuspecXml.Save($nuspecFile.FullName)
           
               # -------------------------
