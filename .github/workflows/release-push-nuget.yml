@@ -247,7 +247,7 @@ jobs:
       - name: Update release with renamed packages
         uses: ncipollo/release-action@v1
         with:
-          tag: "${{ steps.rename.outputs.VERSION_TAG }}"
+          tag: "${{ github.event.release.tag_name }}"
           artifacts: "./artifacts/*.*"
           draft: false
           makeLatest: true
